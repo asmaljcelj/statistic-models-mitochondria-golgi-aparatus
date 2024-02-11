@@ -3,8 +3,8 @@ import os
 import numpy as np
 import time
 
-data_directory = 'data'
-extracted_data_directory = 'extracted_data'
+data_directory = '../data'
+extracted_data_directory = '../extracted_data'
 
 for filename in os.listdir(data_directory):
     start_time = time.time()
