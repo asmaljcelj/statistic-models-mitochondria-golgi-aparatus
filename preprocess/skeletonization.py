@@ -2,13 +2,33 @@ import nibabel as nib
 import os
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
+from scipy.spatial import KDTree
 from skimage.morphology import skeletonize_3d
 
 folder = '../extracted_data'
 results_folder = '../skeletons'
 
+
+def sort_points(points):
+    all_points = []
+    for i in range(len(points[0])):
+        all_points.append([points[0][i], points[1][i], points[2][i]])
+    all_points = np.array(all_points, dtype='uint8')
+    sorted_points = []
+    tree = KDTree(all_points)
+    current_point = all_points[0]
+    while len(sorted_points) < len(all_points):
+        dist, nearest_index = tree.query(current_point)
+        current_point = all_points[nearest_index]
+        sorted_points.append(current_point)
+        all_points = np.delete(all_points, nearest_index, axis=0)
+        tree = KDTree(all_points)
+    return sorted_points
+
+
 for filename in os.listdir(folder):
     filepath = folder + '/' + filename
+    print('processing file', filename)
 
     image = nib.load(filepath)
     array = np.array(image.get_fdata())
@@ -22,9 +42,6 @@ for filename in os.listdir(folder):
                     points_x.append(x)
                     points_y.append(y)
                     points_z.append(z)
-
-    new_image = nib.Nifti1Image(result, image.affine)
-    nib.save(new_image, results_folder + '/' + filename + '_skeleton')
 
     x_space = np.linspace(0, result.shape[0], result.shape[0], endpoint=False)
     y_space = np.linspace(0, result.shape[1], result.shape[1], endpoint=False)
@@ -41,5 +58,9 @@ for filename in os.listdir(folder):
         if interp([x, y, z]) > 100:
             smoothed_result[x][y][z] = 255
 
-    interpolated_image = nib.Nifti1Image(smoothed_result, image.affine)
-    nib.save(interpolated_image, results_folder + '/' + filename + '_skeleton_interpolated')
+    sorted_values = sort_points(nonzero_values)
+    np.savetxt('../skeletons/' + os.path.splitext(filename)[0] + '.csv', sorted_values, delimiter=',', fmt='%-0d')
+
+    # save interpolated result as nii image to view the skeleton
+    # interpolated_image = nib.Nifti1Image(smoothed_result, image.affine)
+    # nib.save(interpolated_image, results_folder + '/skeleton_interpolated_' + filename)

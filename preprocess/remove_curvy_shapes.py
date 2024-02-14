@@ -6,6 +6,8 @@ file_directory = '../extracted_data'
 # manual inspection performed
 curvy_instances = [
     'fib1-0-0-0_10.nii',
+    # non-normal shape
+    'fib1-0-0-0_33.nii',
     'fib1-1-0-3_2.nii',
     'fib1-1-0-3_3.nii',
     'fib1-3-2-1_1.nii',
