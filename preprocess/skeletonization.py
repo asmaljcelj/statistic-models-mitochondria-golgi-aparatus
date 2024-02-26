@@ -3,6 +3,7 @@ import os
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
+from scipy.interpolate import CubicSpline
 from skimage.morphology import skeletonize_3d
 
 folder = '../extracted_data'
