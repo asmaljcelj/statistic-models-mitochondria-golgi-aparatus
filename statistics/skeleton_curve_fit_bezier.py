@@ -13,6 +13,20 @@ def function(xy, a, b, c, d, e, f, g, h, i):
     return a * x ** 3 + b * y ** 2 + c * x ** 2 * y + d * x * y ** 2 + e * x ** 2 + f * y ** 2 + g * x + h * y + i
 
 
+def multiply_num_with_list(list, num):
+    return [element * num for element in list]
+
+def sum_same_elements(list1, list2):
+    return [el1 + el2 for el1, el2 in zip(list1, list2)]
+
+def cubic_Bezier(p0, p1, p2, p3):
+    result = []
+    t_space = np.linspace(0, 1, 20)
+    for t in range(len(t_space) - 1):
+        result.append(sum_same_elements(sum_same_elements(multiply_num_with_list(p0, (1 - t_space[t])**3), multiply_num_with_list(p1, 3 * (1 - t_space[t])**2 * t_space[t])), sum_same_elements(multiply_num_with_list(p2, 3 * (1 - t_space[t])**2 * t_space[t]**2), multiply_num_with_list(p3, t_space[t]**3))))
+    return result
+
+
 skeletons_folder = '../skeletons/'
 
 f = open('skeletons_approximations.csv', 'w')
@@ -33,19 +47,26 @@ for filename in os.listdir(skeletons_folder):
             z.append(int(row[2]))
             points.append([int(row[0]), int(row[1]), int(row[2])])
 
-    t_points = np.arange(0, 1, 0.001)
+    # t_points = np.arange(0, 1, 0.001)
     points1 = np.array(points)
-    curve = Bezier.Curve(t_points, points1)
-    print('done')
+    # curve = Bezier.Curve(t_points, points1)
 
+    whole_curve = []
+    for i in range(0, len(points), 4):
+        if i > len(points) - 4:
+            break
+        whole_curve += cubic_Bezier(points[i], points[i + 1], points[i + 2], points[i + 3])
+
+    print('done')
+    whole_curve = np.array(whole_curve)
 
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.plot(
-        curve[:, 0],  # x-coordinates.
-        curve[:, 1],  # y-coordinates.
-        curve[:, 2],  # y-coordinates.
+        whole_curve[:, 0],  # x-coordinates.
+        whole_curve[:, 1],  # y-coordinates.
+        whole_curve[:, 2],  # y-coordinates.
     )
     ax.plot(
         points1[:, 0],  # x-coordinates.
@@ -57,33 +78,7 @@ for filename in os.listdir(skeletons_folder):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    # Rotate the axes and update
-    # for angle in range(0, 360 * 4 + 1):
-    #     # Normalize the angle to the range [-180, 180] for display
-    #     angle_norm = (angle + 180) % 360 - 180
-    #
-    #     # Cycle through a full rotation of elevation, then azimuth, roll, and all
-    #     elev = azim = roll = 0
-    #     if angle <= 360:
-    #         elev = angle_norm
-    #     elif angle <= 360 * 2:
-    #         azim = angle_norm
-    #     elif angle <= 360 * 3:
-    #         roll = angle_norm
-    #     else:
-    #         elev = azim = roll = angle_norm
-    #
-    #     # Update the axis view and title
-    #     ax.view_init(elev=elev, azim=azim, vertical_axis='z')
-    #     plt.title('Elevation: %d°, Azimuth: %d°, Roll: %d°' % (elev, azim, roll))
-    #
-    #     plt.draw()
-    #     plt.pause(.001)
-
-
-
-    # plt.grid()
-    ax.view_init(0, 0)
+    ax.view_init(20, -20)
     plt.show()
     break
 
