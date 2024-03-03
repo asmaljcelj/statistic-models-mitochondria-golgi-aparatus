@@ -23,7 +23,7 @@ def cubic_Bezier(p0, p1, p2, p3):
     result = []
     t_space = np.linspace(0, 1, 20)
     for t in range(len(t_space) - 1):
-        result.append(sum_same_elements(sum_same_elements(multiply_num_with_list(p0, (1 - t_space[t])**3), multiply_num_with_list(p1, 3 * (1 - t_space[t])**2 * t_space[t])), sum_same_elements(multiply_num_with_list(p2, 3 * (1 - t_space[t])**2 * t_space[t]**2), multiply_num_with_list(p3, t_space[t]**3))))
+        result.append(sum_same_elements(sum_same_elements(multiply_num_with_list(p0, (1 - t_space[t])**3), multiply_num_with_list(p1, 3 * (1 - t_space[t])**2 * t_space[t])), sum_same_elements(multiply_num_with_list(p2, 3 * (1 - t_space[t]) * t_space[t]**2), multiply_num_with_list(p3, t_space[t]**3))))
     return result
 
 
@@ -52,9 +52,10 @@ for filename in os.listdir(skeletons_folder):
     # curve = Bezier.Curve(t_points, points1)
 
     whole_curve = []
-    for i in range(0, len(points), 4):
-        if i > len(points) - 4:
-            break
+    for i in range(0, len(points), 3):
+        if i > len(points) - 3:
+            diff = len(points) % 3
+
         whole_curve += cubic_Bezier(points[i], points[i + 1], points[i + 2], points[i + 3])
 
     print('done')
@@ -78,7 +79,7 @@ for filename in os.listdir(skeletons_folder):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    ax.view_init(20, -20)
+    ax.view_init(50, 20)
     plt.show()
     break
 
