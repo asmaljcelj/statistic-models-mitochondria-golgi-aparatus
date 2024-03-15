@@ -15,8 +15,8 @@ def sum_same_elements(list1, list2):
 
 def cubic_bezier(p0, p1, p2, p3):
     result = []
-    t_space = np.linspace(0, 1, 20)
-    for t in range(len(t_space) - 1):
+    t_space = np.linspace(0, 1, 50)
+    for t in range(len(t_space)):
         result.append(
             sum_same_elements(
                 sum_same_elements(
@@ -59,18 +59,21 @@ for filename in os.listdir(skeletons_folder):
 
     points1 = np.array(points)
 
-    whole_curve = []
-    for i in range(0, len(points), 3):
-        if i > len(points) - 4:
-            # todo: how to handle last elements if they are not dividable by 4?
-            # remaining = len(points) - i
-            # i -= (4 - remaining)
-            # whole_curve += cubic_bezier(points[i], points[i + 1], points[i + 2], points[i + 3])
-            break
-        whole_curve += cubic_bezier(points[i], points[i + 1], points[i + 2], points[i + 3])
+    control_point1_index = int(0.33 * len(points))
+    control_point2_index = int(0.66 * len(points))
+    control_point1 = points[control_point1_index]
+    control_point2 = points[control_point2_index]
+    whole_curve = cubic_bezier(points[0], control_point1, control_point2, points[len(points) - 1])
+
+    new_points = []
 
     for point in whole_curve:
-        writer.writerow([point[0], point[1], point[2]])
+        p = [round(point[0]), round(point[1]), round(point[2])]
+        if p not in new_points:
+            new_points.append(p)
+            writer.writerow(p)
+
+    new_points = np.array(new_points)
 
     f.close()
 
@@ -89,7 +92,13 @@ for filename in os.listdir(skeletons_folder):
             points1[:, 0],  # x-coordinates.
             points1[:, 1],  # y-coordinates.
             points1[:, 2],  # y-coordinates.
-            'ro:'  # Styling (red, circles, dotted).
+            'ro:',  # Styling (red, circles, dotted).
+        )
+        ax.plot(
+            new_points[:, 0],  # x-coordinates.
+            new_points[:, 1],  # y-coordinates.
+            new_points[:, 2],  # y-coordinates.
+            'yo:',  # Styling (yellow, circles, dotted).
         )
         ax.set_xlabel('x')
         ax.set_ylabel('y')
