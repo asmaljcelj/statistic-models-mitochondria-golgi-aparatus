@@ -16,9 +16,12 @@ curvy_instances = [
     'fib1-3-3-0_4.nii',
     'fib1-3-3-0_14.nii',
     'fib1-3-3-0_28.nii',
+    'fib1-3-3-0_56.nii',
+    'fib1-3-3-0_59.nii',
     'fib1-4-3-0_3.nii',
     'fib1-4-3-0_7.nii',
-    'fib1-4-3-0_14.nii'
+    'fib1-4-3-0_14.nii',
+    'fib1-4-3-0_38.nii'
 ]
 
 for filename in os.listdir(file_directory):
