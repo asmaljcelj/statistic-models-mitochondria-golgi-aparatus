@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 skeletons_folder = '../skeletons/'
 number_of_plots = 10
 current_plot_count = 0
-plotting_enabled = False
+plotting_enabled = True
 
 
 def multiply_num_with_list(list, num):
@@ -47,6 +47,15 @@ def extract_points():
         z_coord.append(int(row[2]))
         points.append([int(row[0]), int(row[1]), int(row[2])])
     return x_coord, y_coord, z_coord, points
+
+
+def generate_points_between_points(p1, p2, num_of_points):
+    p1 = np.array(p1)
+    p2 = np.array(p2)
+
+    step = 1.0 / (num_of_points + 1)
+    points = [p1 + (p2 - p1) * i for i in np.arange(step, 1, step)]
+    return points
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points):
@@ -99,6 +108,10 @@ def write_curve_to_file(curve):
     return np.array(new_points)
 
 
+def calculate_statistics(straight_curve, fitted_curve):
+    pass
+
+
 for filename in os.listdir(skeletons_folder):
     if filename.endswith('.nii'):
         continue
@@ -139,3 +152,7 @@ for filename in os.listdir(skeletons_folder):
 
         if plotting_enabled:
             plot_save_result(current_plot_count, whole_curve, np_points)
+
+        straight_line = generate_points_between_points(new_points[0], new_points[len(new_points) - 1], len(new_points))
+
+        print('hello')
