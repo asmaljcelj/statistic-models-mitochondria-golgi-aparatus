@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
 from scipy.interpolate import CubicSpline
-from skimage.morphology import skeletonize_3d
+from skimage.morphology import skeletonize_3d, skeletonize
 
 folder = '../extracted_data'
 results_folder = '../skeletons'
@@ -33,9 +33,10 @@ for filename in os.listdir(folder):
 
     image = nib.load(filepath)
     array = np.array(image.get_fdata())
-    result = skeletonize_3d(array)
+    result = skeletonize(array)
 
     points_x, points_y, points_z = [], [], []
+    final_points = []
     for x in range(result.shape[0]):
         for y in range(result.shape[1]):
             for z in range(result.shape[2]):
@@ -43,24 +44,25 @@ for filename in os.listdir(folder):
                     points_x.append(x)
                     points_y.append(y)
                     points_z.append(z)
+                    final_points.append([x, y, z])
 
-    x_space = np.linspace(0, result.shape[0], result.shape[0], endpoint=False)
-    y_space = np.linspace(0, result.shape[1], result.shape[1], endpoint=False)
-    z_space = np.linspace(0, result.shape[2], result.shape[2], endpoint=False)
+    # x_space = np.linspace(0, result.shape[0], result.shape[0], endpoint=False)
+    # y_space = np.linspace(0, result.shape[1], result.shape[1], endpoint=False)
+    # z_space = np.linspace(0, result.shape[2], result.shape[2], endpoint=False)
+    #
+    # interp = RegularGridInterpolator((x_space, y_space, z_space), result, method='cubic')
+    #
+    # smoothed_result = np.zeros((result.shape[0], result.shape[1], result.shape[2]), dtype='uint8')
+    # nonzero_values = np.nonzero(interp.values)
+    # for i in range(len(nonzero_values[0])):
+    #     x = nonzero_values[0][i]
+    #     y = nonzero_values[1][i]
+    #     z = nonzero_values[2][i]
+    #     if interp([x, y, z]) > 100:
+    #         smoothed_result[x][y][z] = 255
 
-    interp = RegularGridInterpolator((x_space, y_space, z_space), result, method='cubic')
-
-    smoothed_result = np.zeros((result.shape[0], result.shape[1], result.shape[2]), dtype='uint8')
-    nonzero_values = np.nonzero(interp.values)
-    for i in range(len(nonzero_values[0])):
-        x = nonzero_values[0][i]
-        y = nonzero_values[1][i]
-        z = nonzero_values[2][i]
-        if interp([x, y, z]) > 100:
-            smoothed_result[x][y][z] = 255
-
-    sorted_values = sort_points(nonzero_values)
-    np.savetxt('../skeletons/' + os.path.splitext(filename)[0] + '.csv', sorted_values, delimiter=',', fmt='%-0d')
+    # sorted_values = sort_points(final_points)
+    np.savetxt('../skeletons/' + os.path.splitext(filename)[0] + '.csv', final_points, delimiter=',', fmt='%-0d')
 
     # save interpolated result as nii image to view the skeleton
     # interpolated_image = nib.Nifti1Image(smoothed_result, image.affine)
