@@ -1,8 +1,10 @@
 import csv
 import time
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import nibabel as nib
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
@@ -49,6 +51,7 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
 
 
 def plot_sampling_with_shape(shape, sampled_points, skeleton, parametrized_points):
+    matplotlib.use('TkAgg')
     colors = [
         (0.0, 1.0, 0.0),
          (0.1111111111111111, 0.8861111111111111, 0.0),
@@ -67,7 +70,8 @@ def plot_sampling_with_shape(shape, sampled_points, skeleton, parametrized_point
     skeleton = np.array(skeleton)
     parametrized_points = np.array(parametrized_points)
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    # ax = fig.add_subplot(111, projection='3d')
+    ax = Axes3D(fig)
     ax.voxels(shape, facecolors=[0, 0, 1, 0.2])
     ax.plot(skeleton[:, 0], skeleton[:, 1], skeleton[:, 2], 'yo:')
     ax.plot(parametrized_points[:, 0], parametrized_points[:, 1], parametrized_points[:, 2], 'gx:')

@@ -4,19 +4,22 @@ import numpy as np
 
 from bezier import perform_arc_length_parametrization_bezier_curve
 from utils import read_file_collect_points, read_nii_file, plot_sampling_with_shape
-from math_utils import magnitude, rotate_vector, distance_between_points
+from math_utils import magnitude, rotate_vector, distance_between_points, from_degrees_to_radians
+
 
 # todo: neki cudno sampla tudi izven BB-ja????????
 def sample_rays(origin, direction_vector, shape, base_x, parametrized_points, skeleton):
+    original_direction_vector = direction_vector
     distances = []
     sampled_points = {}
     base_x = base_x / magnitude(base_x)
     counter = 0
-    while counter < 360:
+    # while not (direction_vector == original_direction_vector).all() or counter < 6:
+    while counter < 6:
         distance, sampled_points_a = iterate_ray(origin, direction_vector, shape)
         distances.append(distance)
         sampled_points[counter] = sampled_points_a
-        direction_vector = get_new_direction_vector(direction_vector, base_x)
+        direction_vector = get_new_direction_vector(direction_vector, original_direction_vector)
         counter += 1
     plot_sampling_with_shape(shape, sampled_points, skeleton, parametrized_points)
     return distances
@@ -46,7 +49,7 @@ def iterate_ray(origin, direction_vector, shape):
 
 
 def get_new_direction_vector(previous_vector, base_x):
-    return rotate_vector(previous_vector, 1, base_x)
+    return rotate_vector(previous_vector, from_degrees_to_radians(45), base_x)
 
 
 if __name__ == '__main__':
@@ -72,5 +75,7 @@ if __name__ == '__main__':
                 mag = magnitude(normal)
                 normal = normal / mag
                 distances[i] = sample_rays(current_point, normal, object_points, a, arc, points)
+                break
+        break
         print(distances)
         break
