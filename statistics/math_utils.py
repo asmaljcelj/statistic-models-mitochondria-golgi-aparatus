@@ -9,6 +9,10 @@ def magnitude(point):
     return np.sqrt(np.sum(point ** 2))
 
 
+def normalize(vector):
+    return vector / magnitude(vector)
+
+
 def extract_points(csv_file):
     points = []
     reader = csv.reader(csv_file, delimiter=',')
@@ -45,6 +49,7 @@ def rotate_vector(vector, angle_degrees, base_vector):
     # ]
     # R = np.array(R)
     # return np.dot(R, vector)
+    # Source: Rodrigues' rotation formula
     theta = np.deg2rad(angle_degrees)
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
@@ -94,4 +99,14 @@ def equation_plane(point1, point2, point3):
     d = (-a * point1[0] - b * point1[1] - c * point1[2])
     print('params:', a, b, c, d)
     print('normal', a, b, c)
+
+
+# source: https://math.stackexchange.com/a/476311
+def get_rotation_matrix(origin, destination):
+    v = np.cross(origin, destination)
+    s = np.linalg.norm(v)
+    c = np.dot(origin, destination)
+    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    r = np.eye(3) + vx + np.dot(vx, vx) * (1 - c) / (s ** 2)
+    return r
 
