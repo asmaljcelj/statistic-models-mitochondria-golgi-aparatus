@@ -3,8 +3,15 @@ import os
 import numpy as np
 
 from bezier import perform_arc_length_parametrization_bezier_curve
-from utils import read_file_collect_points, read_nii_file, plot_sampling_with_shape
 from math_utils import magnitude, rotate_vector, distance_between_points, normalize, get_rotation_matrix
+from outside_statistics import calculate_average
+from utils import read_file_collect_points, read_nii_file
+
+
+def sample_direction_vectors(num_of_samples):
+    u_samples = np.random.uniform(0, 1, num_of_samples)
+    v_samples = np.random.uniform(0, 1, num_of_samples)
+    return random_cosine(u_samples, v_samples, 1)
 
 
 def random_cosine(u, v, m):
@@ -19,11 +26,11 @@ def random_cosine(u, v, m):
     return np.array(list(zip(x, y, z)))
 
 
-def uniform_sample_at_ends(end_point, second_point, num_of_samples, shape, skeleton, parametrized_points):
-    u_samples = np.random.uniform(0, 1, num_of_samples)
-    v_samples = np.random.uniform(0, 1, num_of_samples)
+def uniform_sample_at_ends(end_point, second_point, num_of_samples, shape, points_on_hemisphere, skeleton, parametrized_points):
+    # u_samples = np.random.uniform(0, 1, num_of_samples)
+    # v_samples = np.random.uniform(0, 1, num_of_samples)
+    # points_on_hemisphere = random_cosine(u_samples, v_samples, 1)
     normal = normalize(end_point - second_point)
-    points_on_hemisphere = random_cosine(u_samples, v_samples, 1)
     R = get_rotation_matrix(np.array([0, 0, 1]), normal)
     sampled_points_t = {}
     distances = {}
@@ -85,36 +92,61 @@ def get_new_direction_vector(previous_vector, base_x, counter):
     return rotate_vector(previous_vector, counter + 1, base_x)
 
 
+def perform_measurements(n, points, num_of_points, direction_vectors):
+    distances = {}
+    _, arc = perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
+    if arc is not None:
+        for i in range(1, len(arc) - 2):
+            previous_point = arc[i - 1]
+            current_point = arc[i]
+            next_point = arc[i + 1]
+            # normala
+            a = next_point - current_point
+            b = previous_point - current_point
+            a = a / magnitude(a)
+            b = b / magnitude(b)
+            normal = np.cross(a, b)
+            if np.any(np.isnan(normal)):
+                return None, None, None
+            normal = normal / magnitude(normal)
+            base_y = np.cross(a, normal)
+            base_y = base_y / magnitude(base_y)
+            distances[i] = sample_rays(current_point, normal, object_points, a, base_y, arc, points)
+        distance_start = uniform_sample_at_ends(arc[0], arc[1], 10000, object_points, direction_vectors, points, arc)
+        distance_end = uniform_sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], 10, object_points, direction_vectors, points, arc)
+        # distances_skeleton_all[filename] = distances
+        # distances_start_all[filename] = distance_start
+        # distances_end_all[filename] = distance_end
+    return distances, distance_start, distance_end
+
+
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
     num_of_points = 10
+    n = 5
+    num_of_samples = 1000
+    distances_skeleton_all, distances_start_all, distances_end_all = {}, {}, {}
+    direction_vectors = sample_direction_vectors(num_of_samples)
     for filename in os.listdir(skeletons_folder):
+        print('processing', filename)
         # if filename != 'fib1-3-3-0_41.csv':
         #     continue
-        distances = {}
+
         points = read_file_collect_points(filename, skeletons_folder)
         object_points = read_nii_file('../extracted_data/', filename.replace('.csv', '.nii'))
         if points is None:
             print('no points for file', filename)
             continue
         # todo: ce pride do tega, da sta 3 tocke kolinearne, zmanjsaj stopnjo Bezierja za 1 in poskusi znova
-        _, arc = perform_arc_length_parametrization_bezier_curve(5, points, num_of_points)
-        if arc is not None:
-            for i in range(1, len(arc) - 2):
-                previous_point = arc[i - 1]
-                current_point = arc[i]
-                next_point = arc[i + 1]
-                # normala
-                a = next_point - current_point
-                b = previous_point - current_point
-                a = a / magnitude(a)
-                b = b / magnitude(b)
-                normal = np.cross(a, b)
-                normal = normal / magnitude(normal)
-                base_y = np.cross(a, normal)
-                base_y = base_y / magnitude(base_y)
-                # equation_plane(current_point, previous_point, next_point)
-                distances[i] = sample_rays(current_point, normal, object_points, a, base_y, arc, points)
-            distance_start = uniform_sample_at_ends(arc[0], arc[1], 10, object_points, points, arc)
-            distance_end = uniform_sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], 10, object_points, points, arc)
-        # print(distances)
+        distances, distance_start, distance_end = perform_measurements(n, points, num_of_points, direction_vectors)
+        if distances is None:
+            new_n = n
+            while distances is None:
+                new_n -= 1
+                print('try to form new distances with order', new_n)
+                distances, distance_start, distance_end = perform_measurements(new_n, points, num_of_points, direction_vectors)
+        distances_skeleton_all[filename] = distances
+        distances_start_all[filename] = distance_start
+        distances_end_all[filename] = distance_end
+    calculate_average(distances_skeleton_all, distances_start_all, distances_end_all)
+    # print(distances)
