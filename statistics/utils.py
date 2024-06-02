@@ -103,3 +103,10 @@ def read_nii_file(base_folder, filename):
     image_data = nib_image.get_fdata()
     return np.array(image_data)
 
+
+def plot_kde(range, data):
+    plt.plot(range, data)
+    plt.xlabel('Distance')
+    plt.ylabel('Density')
+    plt.show()
+

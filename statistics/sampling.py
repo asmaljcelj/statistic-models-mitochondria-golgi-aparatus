@@ -4,7 +4,7 @@ import numpy as np
 
 from bezier import perform_arc_length_parametrization_bezier_curve
 from math_utils import magnitude, rotate_vector, distance_between_points, normalize, get_rotation_matrix
-from outside_statistics import calculate_average
+from outside_statistics import calculate_average, group_distances, sample_new_points
 from utils import read_file_collect_points, read_nii_file
 
 
@@ -34,8 +34,6 @@ def uniform_sample_at_ends(end_point, second_point, num_of_samples, shape, point
     R = get_rotation_matrix(np.array([0, 0, 1]), normal)
     sampled_points_t = {}
     distances = {}
-    # todo: temporary fix: najdi nacin za zapisovanje informacije o kotu
-    counter = 0
     for point in points_on_hemisphere:
         direction_vector = normalize(point)
         rotated_vector = np.dot(R, direction_vector)
@@ -43,7 +41,6 @@ def uniform_sample_at_ends(end_point, second_point, num_of_samples, shape, point
         key = (direction_vector[0], direction_vector[1], direction_vector[2])
         distances[key] = distance
         sampled_points_t[key] = sampled_points
-        counter += 1
     # plot_sampling_with_shape(shape, sampled_points_t, skeleton, parametrized_points)
     return distances
 
@@ -113,7 +110,7 @@ def perform_measurements(n, points, num_of_points, direction_vectors):
             base_y = base_y / magnitude(base_y)
             distances[i] = sample_rays(current_point, normal, object_points, a, base_y, arc, points)
         distance_start = uniform_sample_at_ends(arc[0], arc[1], 10000, object_points, direction_vectors, points, arc)
-        distance_end = uniform_sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], 10, object_points, direction_vectors, points, arc)
+        distance_end = uniform_sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], 10000, object_points, direction_vectors, points, arc)
         # distances_skeleton_all[filename] = distances
         # distances_start_all[filename] = distance_start
         # distances_end_all[filename] = distance_end
@@ -137,7 +134,6 @@ if __name__ == '__main__':
         if points is None:
             print('no points for file', filename)
             continue
-        # todo: ce pride do tega, da sta 3 tocke kolinearne, zmanjsaj stopnjo Bezierja za 1 in poskusi znova
         distances, distance_start, distance_end = perform_measurements(n, points, num_of_points, direction_vectors)
         if distances is None:
             new_n = n
@@ -148,5 +144,7 @@ if __name__ == '__main__':
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end
-    calculate_average(distances_skeleton_all, distances_start_all, distances_end_all)
+    # calculate_average(distances_skeleton_all, distances_start_all, distances_end_all)
+    skeleton, start, end = group_distances(distances_skeleton_all, distances_start_all, distances_end_all)
+    sample_new_points(skeleton, start, end)
     # print(distances)
