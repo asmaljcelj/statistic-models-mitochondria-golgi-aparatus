@@ -5,7 +5,7 @@ import numpy as np
 from bezier import perform_arc_length_parametrization_bezier_curve
 from math_utils import magnitude, rotate_vector, distance_between_points, normalize, get_rotation_matrix
 from outside_statistics import calculate_average, group_distances, sample_new_points
-from utils import read_file_collect_points, read_nii_file
+from utils import read_file_collect_points, read_nii_file, plot_new_points, save_as_nii
 
 
 def sample_direction_vectors(num_of_samples):
@@ -34,14 +34,18 @@ def uniform_sample_at_ends(end_point, second_point, num_of_samples, shape, point
     R = get_rotation_matrix(np.array([0, 0, 1]), normal)
     sampled_points_t = {}
     distances = {}
+    # rotated_vectors = []
     for point in points_on_hemisphere:
         direction_vector = normalize(point)
         rotated_vector = np.dot(R, direction_vector)
+        # rotated_vectors.append(rotated_vector)
         distance, sampled_points = iterate_ray(end_point, rotated_vector, shape)
         key = (direction_vector[0], direction_vector[1], direction_vector[2])
         distances[key] = distance
         sampled_points_t[key] = sampled_points
     # plot_sampling_with_shape(shape, sampled_points_t, skeleton, parametrized_points)
+    # rotated_vectors = np.array(rotated_vectors)
+    # plot_new_points(rotated_vectors)
     return distances
 
 
@@ -124,6 +128,7 @@ if __name__ == '__main__':
     num_of_samples = 1000
     distances_skeleton_all, distances_start_all, distances_end_all = {}, {}, {}
     direction_vectors = sample_direction_vectors(num_of_samples)
+    # plot_new_points(direction_vectors)
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
         # if filename != 'fib1-3-3-0_41.csv':
@@ -146,5 +151,4 @@ if __name__ == '__main__':
         distances_end_all[filename] = distance_end
     # calculate_average(distances_skeleton_all, distances_start_all, distances_end_all)
     skeleton, start, end = group_distances(distances_skeleton_all, distances_start_all, distances_end_all)
-    sample_new_points(skeleton, start, end)
-    # print(distances)
+    sample_new_points(skeleton, start, end, 5)

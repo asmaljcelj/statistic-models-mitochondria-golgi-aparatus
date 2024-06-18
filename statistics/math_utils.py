@@ -110,3 +110,16 @@ def get_rotation_matrix(origin, destination):
     r = np.eye(3) + vx + np.dot(vx, vx) * (1 - c) / (s ** 2)
     return r
 
+
+def get_points_between_2_points(point1, point2, num_of_points):
+    points = []
+    mx = point2[0] - point1[0]
+    my = point2[1] - point1[1]
+    mz = point2[2] - point1[2]
+    for i in np.arange(0, 1.01, 1 / num_of_points):
+        x = point1[0] + mx * i
+        y = point1[1] + my * i
+        z = point1[2] + mz * i
+        points.append([x, y, z])
+    return points
+

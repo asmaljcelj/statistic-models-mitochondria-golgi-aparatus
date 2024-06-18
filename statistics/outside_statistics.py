@@ -1,6 +1,9 @@
+import math
+
 import numpy as np
 from scipy.stats import gaussian_kde
-from utils import plot_kde
+from utils import plot_kde, plot_new_points, save_as_nii
+from math_utils import rotate_vector, get_points_between_2_points
 
 def calculate_average(skeleton_distances, start_distances, end_distances):
     average_skeleton_distances = {}
@@ -80,18 +83,70 @@ def group_both_ends_data(data):
     return grouped_data
 
 
-def sample_new_points(skeleton_distances, start_distances, end_distances):
+def sample_new_points(skeleton_distances, start_distances, end_distances, num_files):
+    skeleton_points = np.column_stack((np.zeros(10), np.zeros(10), np.linspace(1, 10, 10, endpoint=True)))
+    new_points = []
+    for _ in range(num_files):
+        new_points.append([])
+    # start
+    print('generating start points')
     for direction, distances in start_distances.items():
-        estimation = estimate_distribution(distances)
-        print(estimation)
+        distances = np.array(distances)
+        kde = gaussian_kde(distances)
+        range_distances = np.linspace(min(distances), max(distances), 10000)
+        pdf_estimation = kde(range_distances)
+        # plot_kde(range, pdf_estimation)
+        cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
+        uniform_samples = np.random.uniform(0, 1, num_files)
+        for i, sample in enumerate(uniform_samples):
+            new_distance = np.interp(sample, cdf_estimation, range_distances)
+            # calculate new boundary point in 3D space
+            new_point = new_distance * (direction * np.array(-1))
+            new_points[i].extend(get_points_between_2_points(np.array(([0, 0, 0])), new_point, math.ceil(new_distance)))
+        # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
+        # new_points.append(new_point)
+    # end
+    print('generating end points')
+    last_point = skeleton_points[-1]
+    for direction, distances in end_distances.items():
+        distances = np.array(distances)
+        kde = gaussian_kde(distances)
+        range_distances = np.linspace(min(distances), max(distances), 10000)
+        pdf_estimation = kde(range_distances)
+        # plot_kde(range, pdf_estimation)
+        cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
+        uniform_samples = np.random.uniform(0, 1, num_files)
+        for i, sample in enumerate(uniform_samples):
+            new_distance = np.interp(sample, cdf_estimation, range_distances)
+            # calculate new boundary point in 3D space
+            new_point = (new_distance * np.array(direction)) + last_point
+            new_points[i].extend(get_points_between_2_points(last_point, new_point, math.ceil(new_distance)))
+            # new_point = direction + last_point
+            # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
+            # new_points.append(new_point)
+    # generate points on skeleton
+    for point, distances_around in skeleton_distances.items():
+        skeleton_point = skeleton_points[point]
+        for angle, distances in distances_around.items():
+            distances = np.array(distances)
+            kde = gaussian_kde(distances)
+            range_distances = np.linspace(min(distances), max(distances), 10000)
+            pdf_estimation = kde(range_distances)
+            # plot_kde(range, pdf_estimation)
+            cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
+            uniform_samples = np.random.uniform(0, 1, num_files)
+            for i, sample in enumerate(uniform_samples):
+                new_distance = np.interp(sample, cdf_estimation, range_distances)
+                # calculate new boundary point in 3D space
+                direction = rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
+                new_point = new_distance * np.array(direction) + skeleton_point
+                # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
+                new_points[i].extend(get_points_between_2_points(skeleton_point, new_point, math.ceil(new_distance)))
+                # new_points.append(new_point)
 
+    for i in range(num_files):
+        new_points[i] = np.array(new_points[i])
+    # plot_new_points(new_points)
+    save_as_nii(new_points)
 
-
-def estimate_distribution(data):
-    data = np.array(data)
-    kde = gaussian_kde(data)
-    range = np.linspace(min(data), max(data), 10000)
-    pdf_estimation = kde(range)
-    plot_kde(range, pdf_estimation)
-    return pdf_estimation
 
