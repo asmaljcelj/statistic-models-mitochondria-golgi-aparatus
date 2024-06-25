@@ -20,6 +20,15 @@ def calculate_bezier_derivative(n, points, t):
     return value
 
 
+def calculate_bezier_second_derivative(n, points, t):
+    value = 0
+    for i in range(n - 1):
+        q_i = points[i + 1] - points[i]
+        q_i_plus_1 = points[i + 2] - points[i + 1]
+        value += calculate_B(n - 2, i, t) * (n - 1) * (q_i_plus_1 - q_i)
+    return value
+
+
 def calculate_bezier_point(n, points, t):
     value = 0
     # from 0 to n

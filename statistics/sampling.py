@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from bezier import perform_arc_length_parametrization_bezier_curve
+from bezier import perform_arc_length_parametrization_bezier_curve, calculate_bezier_derivative, calculate_bezier_second_derivative
 from math_utils import magnitude, rotate_vector, distance_between_points, normalize, get_rotation_matrix
 from outside_statistics import calculate_average, group_distances, sample_new_points
 from utils import read_file_collect_points, read_nii_file, plot_new_points, save_as_nii
@@ -93,6 +93,21 @@ def get_new_direction_vector(previous_vector, base_x, counter):
     return rotate_vector(previous_vector, counter + 1, base_x)
 
 
+def calculate_skeleton_curvature(n, arc, number_of_points):
+    t_list = np.linspace(0, 1, number_of_points).tolist()
+    curvature = []
+    for t in t_list:
+        first_derivative = calculate_bezier_derivative(n, arc, t)
+        second_derivative = calculate_bezier_second_derivative(n, arc, t)
+        first_derivative = np.array(first_derivative)
+        second_derivative = np.array(second_derivative)
+        vector_product = np.cross(first_derivative, second_derivative)
+        stevec = magnitude(vector_product)
+        denominator = magnitude(first_derivative) ** 3
+        curvature.append(stevec / denominator)
+    return curvature
+
+
 def perform_measurements(n, points, num_of_points, direction_vectors):
     distances = {}
     _, arc = perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
@@ -115,10 +130,11 @@ def perform_measurements(n, points, num_of_points, direction_vectors):
             distances[i] = sample_rays(current_point, normal, object_points, a, base_y, arc, points)
         distance_start = uniform_sample_at_ends(arc[0], arc[1], 10000, object_points, direction_vectors, points, arc)
         distance_end = uniform_sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], 10000, object_points, direction_vectors, points, arc)
+        skeleton_curvature = calculate_skeleton_curvature(n, arc, num_of_points)
         # distances_skeleton_all[filename] = distances
         # distances_start_all[filename] = distance_start
         # distances_end_all[filename] = distance_end
-    return distances, distance_start, distance_end
+    return distances, distance_start, distance_end, skeleton_curvature
 
 
 if __name__ == '__main__':
@@ -126,7 +142,7 @@ if __name__ == '__main__':
     num_of_points = 10
     n = 5
     num_of_samples = 1000
-    distances_skeleton_all, distances_start_all, distances_end_all = {}, {}, {}
+    distances_skeleton_all, distances_start_all, distances_end_all, curvatures = {}, {}, {}, {}
     direction_vectors = sample_direction_vectors(num_of_samples)
     # plot_new_points(direction_vectors)
     for filename in os.listdir(skeletons_folder):
@@ -139,16 +155,18 @@ if __name__ == '__main__':
         if points is None:
             print('no points for file', filename)
             continue
-        distances, distance_start, distance_end = perform_measurements(n, points, num_of_points, direction_vectors)
+        distances, distance_start, distance_end, skeleton_curvature = perform_measurements(n, points, num_of_points, direction_vectors)
         if distances is None:
             new_n = n
             while distances is None:
                 new_n -= 1
                 print('try to form new distances with order', new_n)
-                distances, distance_start, distance_end = perform_measurements(new_n, points, num_of_points, direction_vectors)
+                distances, distance_start, distance_end, skeleton_curvature = perform_measurements(new_n, points, num_of_points, direction_vectors)
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end
+        curvatures[filename] = skeleton_curvature
+
     # calculate_average(distances_skeleton_all, distances_start_all, distances_end_all)
-    skeleton, start, end = group_distances(distances_skeleton_all, distances_start_all, distances_end_all)
-    sample_new_points(skeleton, start, end, 5)
+    skeleton, start, end, curvature = group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures)
+    sample_new_points(skeleton, start, end, curvature, 1)
