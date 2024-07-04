@@ -6,6 +6,7 @@ import matplotlib
 import numpy as np
 import nibabel as nib
 from mpl_toolkits.mplot3d import Axes3D
+from sympy.integrals.intpoly import point_sort
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
@@ -147,4 +148,52 @@ def save_as_nii(set_of_points):
         new_image = nib.Nifti1Image(final_instance_object, affine)
         new_filename = '../results/generated_shape_' + str(i)
         nib.save(new_image, new_filename)
+
+
+def save_as_nii_layers(start, end, skeleton):
+    for i, start_points in enumerate(start):
+        end_points = end[i]
+        skeleton_points = skeleton[i]
+        affine = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+        x_points = [p[0] for p in start_points] + [p[0] for p in end_points] + [p[0] for p in skeleton_points]
+        y_points = [p[1] for p in start_points] + [p[1] for p in end_points] + [p[1] for p in skeleton_points]
+        z_points = [p[2] for p in start_points] + [p[2] for p in end_points] + [p[2] for p in skeleton_points]
+        min_x = math.trunc(min(x_points))
+        max_x = math.trunc(max(x_points))
+        min_y = math.trunc(min(y_points))
+        max_y = math.trunc(max(y_points))
+        min_z = math.trunc(min(z_points))
+        max_z = math.trunc(max(z_points))
+        final_instance_object = np.zeros((max_x - min_x + 10, max_y - min_y + 10, max_z - min_z + 10))
+        for point in start_points:
+            x = math.trunc(point[0])
+            y = math.trunc(point[1])
+            z = math.trunc(point[2])
+            final_instance_object[x - min_x + 5][y - min_y + 5][z - min_z + 5] = 85
+        for point in end_points:
+            x = math.trunc(point[0])
+            y = math.trunc(point[1])
+            z = math.trunc(point[2])
+            final_instance_object[x - min_x + 5][y - min_y + 5][z - min_z + 5] = 175
+        for point in skeleton_points:
+            x = math.trunc(point[0])
+            y = math.trunc(point[1])
+            z = math.trunc(point[2])
+            final_instance_object[x - min_x + 5][y - min_y + 5][z - min_z + 5] = 255
+        new_image = nib.Nifti1Image(final_instance_object, affine)
+        # new_filename = '../results/generated_shape_' + str(i)
+        new_filename = '../results/generated_shape_4'
+        nib.save(new_image, new_filename)
+
+
+def save_as_normal_file(points, suffix):
+    f = open("../results_" + str(suffix) + ".txt", "a")
+    for point in points:
+        f.write(str(point[0]) + " " + str(point[1]) + " " + str(point[2]) + "\n")
+    f.close()
 

@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from bezier import perform_arc_length_parametrization_bezier_curve, calculate_bezier_derivative, calculate_bezier_second_derivative
+from bezier import perform_arc_length_parametrization_bezier_curve, calculate_bezier_derivative, calculate_bezier_second_derivative, calculate_bezier_third_derivative
 from math_utils import magnitude, rotate_vector, distance_between_points, normalize, get_rotation_matrix
 from outside_statistics import calculate_average, group_distances, sample_new_points
 from utils import read_file_collect_points, read_nii_file, plot_new_points, save_as_nii
@@ -93,24 +93,30 @@ def get_new_direction_vector(previous_vector, base_x, counter):
     return rotate_vector(previous_vector, counter + 1, base_x)
 
 
-def calculate_skeleton_curvature(n, arc, number_of_points):
+def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
     t_list = np.linspace(0, 1, number_of_points).tolist()
     curvature = []
     for t in t_list:
         first_derivative = calculate_bezier_derivative(n, arc, t)
         second_derivative = calculate_bezier_second_derivative(n, arc, t)
+        third_derivative = calculate_bezier_third_derivative(n, arc, t)
         first_derivative = np.array(first_derivative)
         second_derivative = np.array(second_derivative)
         vector_product = np.cross(first_derivative, second_derivative)
         stevec = magnitude(vector_product)
         denominator = magnitude(first_derivative) ** 3
-        curvature.append(stevec / denominator)
+        torsion = np.dot(vector_product, third_derivative) / (stevec ** 2)
+        result = stevec / denominator
+        if torsion < 0:
+            result *= -1
+        curvature.append(result)
     return curvature
 
 
 def perform_measurements(n, points, num_of_points, direction_vectors):
     distances = {}
     _, arc = perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
+    # todo: v model vkljuci tudi dolzino skeletona
     if arc is not None:
         for i in range(1, len(arc) - 2):
             previous_point = arc[i - 1]
@@ -130,7 +136,7 @@ def perform_measurements(n, points, num_of_points, direction_vectors):
             distances[i] = sample_rays(current_point, normal, object_points, a, base_y, arc, points)
         distance_start = uniform_sample_at_ends(arc[0], arc[1], 10000, object_points, direction_vectors, points, arc)
         distance_end = uniform_sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], 10000, object_points, direction_vectors, points, arc)
-        skeleton_curvature = calculate_skeleton_curvature(n, arc, num_of_points)
+        skeleton_curvature = calculate_skeleton_curvature_and_torsion(n, arc, num_of_points)
         # distances_skeleton_all[filename] = distances
         # distances_start_all[filename] = distance_start
         # distances_end_all[filename] = distance_end
