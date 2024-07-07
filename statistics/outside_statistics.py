@@ -5,6 +5,7 @@ import pyvista as pv
 from scipy.stats import gaussian_kde
 from utils import plot_kde, plot_new_points, save_as_nii, save_as_normal_file, save_as_nii_layers
 from math_utils import rotate_vector, get_points_between_2_points
+import trimesh
 
 
 def calculate_average(skeleton_distances, start_distances, end_distances):
@@ -113,6 +114,8 @@ def calculate_new_skeleton_point(previous_point, curvature_value):
 
 def find_new_skeleton_point(center, current_point, radius, direction):
     theta = 1 / radius
+    if current_point[2] - center[2]:
+        print('a')
     phi = math.atan((current_point[1] - center[1]) / (current_point[2] - center[2]))
     z1 = center[2] + radius * math.cos(phi + theta)
     if direction == -1:
@@ -138,15 +141,15 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         range_distances = np.linspace(min(data), max(data), 10000)
         pdf_estimation = kde(range_distances)
         cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-        uniform_samples = np.random.uniform(0, 1, num_files)
-        for i, sample in enumerate(uniform_samples):
+        samples = np.random.normal(0, 1, num_files)
+        for i, sample in enumerate(samples):
             new_curvature = np.interp(sample, cdf_estimation, range_distances)
             # skeleton_points = np.append(skeleton_points, [calculate_new_skeleton_point(skeleton_points[-1], new_curvature)], axis=0)
             total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature)], axis=0)
     # skeleton_points = np.column_stack((np.zeros(10), np.zeros(10), np.linspace(1, 10, 10, endpoint=True)))
     # skeleton_points = np.array(skeleton_points)
     # plot_new_points(total_skeleton_points[0])
-
+    faces = []
     # start
     print('generating start points')
     for direction, distances in start_distances.items():
@@ -156,12 +159,12 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         pdf_estimation = kde(range_distances)
         # plot_kde(range, pdf_estimation)
         cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-        uniform_samples = np.random.uniform(0, 1, num_files)
-        for i, sample in enumerate(uniform_samples):
+        samples = np.random.normal(0, 1, num_files)
+        for i, sample in enumerate(samples):
             new_distance = np.interp(sample, cdf_estimation, range_distances)
             # new_distance *= 10
             # calculate new boundary point in 3D space
-            new_point = new_distance * (direction * np.array(-1))
+            new_point = new_distance * (direction * np.array(-1)) + total_skeleton_points[i][-1]
             # new_points[i].extend(get_points_between_2_points(np.array(([0, 0, 0])), new_point, math.ceil(new_distance)))
             new_points[i].append(new_point)
             start_edge_points[i].append(new_point)
@@ -176,12 +179,12 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         pdf_estimation = kde(range_distances)
         # plot_kde(range, pdf_estimation)
         cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-        uniform_samples = np.random.uniform(0, 1, num_files)
-        for i, sample in enumerate(uniform_samples):
+        samples = np.random.normal(0, 1, num_files)
+        for i, sample in enumerate(samples):
             new_distance = np.interp(sample, cdf_estimation, range_distances)
             # new_distance *= 10
             # calculate new boundary point in 3D space
-            new_point = (new_distance * np.array(direction)) + total_skeleton_points[i][-1]
+            new_point = new_distance * np.array(direction)
             # new_points[i].extend(get_points_between_2_points(total_skeleton_points[i][-1], new_point, math.ceil(new_distance)))
             new_points[i].append(new_point)
             end_edge_points[i].append(new_point)
@@ -189,6 +192,7 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
             # new_points.append(new_point)
     # generate points on skeleton
+    print('generating skeleton points')
     for point, distances_around in skeleton_distances.items():
         for angle, distances in distances_around.items():
             distances = np.array(distances)
@@ -197,8 +201,8 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             pdf_estimation = kde(range_distances)
             # plot_kde(range, pdf_estimation)
             cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-            uniform_samples = np.random.uniform(0, 1, num_files)
-            for i, sample in enumerate(uniform_samples):
+            samples = np.random.normal(0, 1, num_files)
+            for i, sample in enumerate(samples):
                 new_distance = np.interp(sample, cdf_estimation, range_distances)
                 # new_distance *= 10
                 # calculate new boundary point in 3D space
@@ -211,17 +215,22 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
                 # new_points.append(new_point)
     for i in range(num_files):
         new_points[i] = np.array(new_points[i])
-        # generate_mesh(new_points[i])
-    save_as_nii_layers(start_edge_points, end_edge_points, skeleton_points)
+        generate_mesh(new_points[i])
+    # save_as_nii_layers(start_edge_points, end_edge_points, skeleton_points)
     # save_as_normal_file(new_points, 1)
 
 
 def generate_mesh(points):
     print('Generating mesh')
-    cloud = pv.PolyData(points)
-    cloud.plot()
+    # todo: tu moram definirati se ploskve oz. kako se oglišča povezujejo med sabo
+    # tri_mesh = trimesh.Trimesh(vertices=points, faces=)
+    # smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
+    # smooth_vertices = smooth.vertices
 
-    print('Generating geometry')
-    volume = cloud.delaunay_3d(alpha=2.)
-    shell = volume.extract_geometry()
-    shell.plot()
+    # cloud = pv.PolyData(points)
+    # # cloud.plot()
+    #
+    # # print('Generating geometry')
+    # volume = cloud.reconstruct_surface(progress_bar=True)
+    # shell = volume.extract_geometry()
+    # shell.plot()

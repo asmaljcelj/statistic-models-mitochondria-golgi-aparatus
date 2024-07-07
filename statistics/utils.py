@@ -186,8 +186,8 @@ def save_as_nii_layers(start, end, skeleton):
             z = math.trunc(point[2])
             final_instance_object[x - min_x + 5][y - min_y + 5][z - min_z + 5] = 255
         new_image = nib.Nifti1Image(final_instance_object, affine)
-        # new_filename = '../results/generated_shape_' + str(i)
-        new_filename = '../results/generated_shape_4'
+        new_filename = '../results/a_generated_shape_' + str(i)
+        # new_filename = '../results/generated_shape_1'
         nib.save(new_image, new_filename)
 
 
