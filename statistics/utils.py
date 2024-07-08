@@ -197,3 +197,31 @@ def save_as_normal_file(points, suffix):
         f.write(str(point[0]) + " " + str(point[1]) + " " + str(point[2]) + "\n")
     f.close()
 
+
+def get_sign_of_number(number):
+    if number >= 0:
+        return 1
+    return -1
+
+
+def construct_3d_volume_array(points):
+    x_points = [p[0] for p in points]
+    y_points = [p[1] for p in points]
+    z_points = [p[2] for p in points]
+    max_x, min_x = int(max(x_points)), int(min(x_points))
+    max_y, min_y = int(max(y_points)), int(min(y_points))
+    max_z, min_z = int(max(z_points)), int(min(z_points))
+    volume_array = np.empty((max_x - min_x, max_y - min_y, max_z - min_z))
+    for point in points:
+        x, y, z = int(point[0]), int(point[1]), int(point[2])
+        volume_array[x][y][z] = 255
+    return volume_array
+
+
+def generate_obj_file(vertices, faces):
+    with open('../results/test.obj', 'w') as f:
+        for vertex in vertices:
+            f.write(f'v {vertex[0]} {vertex[1]} {vertex[2]} \n')
+        for face in faces:
+            f.write(f'f {face[0]} {face[1]} {face[2]} \n')
+

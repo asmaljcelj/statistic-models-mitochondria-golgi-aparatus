@@ -2,10 +2,14 @@ import math
 
 import numpy as np
 import pyvista as pv
+import scipy.spatial
 from scipy.stats import gaussian_kde
-from utils import plot_kde, plot_new_points, save_as_nii, save_as_normal_file, save_as_nii_layers
+from utils import plot_kde, plot_new_points, save_as_nii, save_as_normal_file, save_as_nii_layers, get_sign_of_number, construct_3d_volume_array, generate_obj_file
 from math_utils import rotate_vector, get_points_between_2_points
 import trimesh
+from skimage import measure
+from mayavi import mlab
+import open3d as o3d
 
 
 def calculate_average(skeleton_distances, start_distances, end_distances):
@@ -114,9 +118,7 @@ def calculate_new_skeleton_point(previous_point, curvature_value):
 
 def find_new_skeleton_point(center, current_point, radius, direction):
     theta = 1 / radius
-    if current_point[2] - center[2]:
-        print('a')
-    phi = math.atan((current_point[1] - center[1]) / (current_point[2] - center[2]))
+    phi = np.pi / 2 * get_sign_of_number(current_point[1] - center[1])
     z1 = center[2] + radius * math.cos(phi + theta)
     if direction == -1:
         z1 = center[2] + radius * math.cos(phi - theta)
@@ -223,8 +225,22 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
 def generate_mesh(points):
     print('Generating mesh')
     # todo: tu moram definirati se ploskve oz. kako se oglišča povezujejo med sabo
-    # tri_mesh = trimesh.Trimesh(vertices=points, faces=)
+    volume = construct_3d_volume_array(points)
+    vertices, faces, normals, values = measure.marching_cubes(volume)
+    mesh = o3d.geometry.TriangleMesh()
+    mesh.vertices = o3d.utility.Vector3dVector(vertices)
+    mesh.triangles = o3d.utility.Vector3iVector(faces)
+    o3d.visualization.draw_geometries([mesh])
+    # mlab.triangular_mesh([vert[0] for vert in vertices],
+    #                      [vert[1] for vert in vertices],
+    #                      [vert[2] for vert in vertices],
+    #                      faces)
+    # mlab.show()
+    # tri = scipy.spatial.Delaunay(points, incremental=True)
+    # print('Gotovo')
+    # tri_mesh = trimesh.Trimesh(vertices=points, faces=tri.simplices)
     # smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
+    # generate_obj_file(smooth.vertices, smooth.faces)
     # smooth_vertices = smooth.vertices
 
     # cloud = pv.PolyData(points)
