@@ -26,7 +26,8 @@ def calculate_B(n, i, t):
 
 
 def distance_between_points(point1, point2):
-    return math.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2 + (point2[2] - point1[2]) ** 2)
+    result = math.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2 + (point2[2] - point1[2]) ** 2)
+    return round(result, 2)
 
 
 def rotate_vector(vector, angle_degrees, base_vector):
@@ -116,6 +117,8 @@ def get_points_between_2_points(point1, point2, num_of_points):
     mx = point2[0] - point1[0]
     my = point2[1] - point1[1]
     mz = point2[2] - point1[2]
+    if num_of_points == 0:
+        num_of_points = 1
     for i in np.arange(0, 1.01, 1 / num_of_points):
         x = point1[0] + mx * i
         y = point1[1] + my * i

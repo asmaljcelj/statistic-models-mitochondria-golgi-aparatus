@@ -7,6 +7,7 @@ import numpy as np
 import nibabel as nib
 from mpl_toolkits.mplot3d import Axes3D
 from sympy.integrals.intpoly import point_sort
+from collections import Counter
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
@@ -186,8 +187,8 @@ def save_as_nii_layers(start, end, skeleton):
             z = math.trunc(point[2])
             final_instance_object[x - min_x + 5][y - min_y + 5][z - min_z + 5] = 255
         new_image = nib.Nifti1Image(final_instance_object, affine)
-        new_filename = '../results/a_generated_shape_' + str(i)
-        # new_filename = '../results/generated_shape_1'
+        # new_filename = '../results/a_generated_shape_' + str(i)
+        new_filename = '../results/generated_shape_35'
         nib.save(new_image, new_filename)
 
 
@@ -204,24 +205,75 @@ def get_sign_of_number(number):
     return -1
 
 
-def construct_3d_volume_array(points):
+def construct_3d_volume_array(points, edge_points):
+    # return points
     x_points = [p[0] for p in points]
     y_points = [p[1] for p in points]
     z_points = [p[2] for p in points]
     max_x, min_x = int(max(x_points)), int(min(x_points))
     max_y, min_y = int(max(y_points)), int(min(y_points))
     max_z, min_z = int(max(z_points)), int(min(z_points))
-    volume_array = np.empty((max_x - min_x, max_y - min_y, max_z - min_z))
+    size_x = max_x - min_x
+    if get_sign_of_number(max_x) != get_sign_of_number(min_x):
+        size_x += 1
+    size_y = max_y - min_y
+    if get_sign_of_number(max_y) != get_sign_of_number(min_y):
+        size_y += 1
+    size_z = max_z - min_z
+    if get_sign_of_number(max_z) != get_sign_of_number(min_z):
+        size_z += 1
+    volume_array = np.zeros((size_x, size_y, size_z))
+    mask = np.zeros((size_x, size_y, size_z))
     for point in points:
-        x, y, z = int(point[0]), int(point[1]), int(point[2])
-        volume_array[x][y][z] = 255
-    return volume_array
+        x, y, z = int(point[0] - min_x), int(point[1] - min_y), int(point[2] - min_z)
+        volume_array[x][y][z] = 1
+    for point in edge_points:
+        x, y, z = int(point[0] - min_x), int(point[1] - min_y), int(point[2] - min_z)
+        mask[x][y][z] = 1
+    return volume_array, np.array(mask, dtype='bool')
 
 
-def generate_obj_file(vertices, faces):
-    with open('../results/test.obj', 'w') as f:
+
+def generate_obj_file(vertices, faces, filename):
+    with open('../results/' + filename, 'w') as f:
         for vertex in vertices:
             f.write(f'v {vertex[0]} {vertex[1]} {vertex[2]} \n')
         for face in faces:
             f.write(f'f {face[0]} {face[1]} {face[2]} \n')
+
+
+def plot_distribution(data):
+    for i, distances_at_point in data.items():
+        for j, distances in distances_at_point.items():
+            distances.sort()
+            distance_counts = Counter(distances)
+            sorted_distances = sorted(distance_counts.items())
+            x_values, y_values = zip(*sorted_distances)
+            plt.figure(figsize=(10, 6))
+            plt.bar(x_values, y_values, width=0.4, color='blue', alpha=0.7)
+
+            # Label the plot
+            plt.xlabel('Distance')
+            plt.ylabel('Frequency')
+            plt.title(f'Frequency of Distances for distance {i} and angle {j}')
+            plt.xticks(rotation=45)
+            plt.grid(True)
+            plt.show()
+
+
+def plot_distribution_end_points(data):
+    for i, distances in data.items():
+        distances.sort()
+        distance_counts = Counter(distances)
+        sorted_distances = sorted(distance_counts.items())
+        x_values, y_values = zip(*sorted_distances)
+        plt.figure(figsize=(10, 6))
+        plt.bar(x_values, y_values, width=0.4, color='blue', alpha=0.7)
+        # Label the plot
+        plt.xlabel('Distance')
+        plt.ylabel('Frequency')
+        plt.title(f'Frequency of Distances for distance {i}')
+        plt.xticks(rotation=45)
+        plt.grid(True)
+        plt.show()
 
