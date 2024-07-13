@@ -1,125 +1,30 @@
 import math
 
 import numpy as np
-import pyvista as pv
-import scipy.spatial
-from scipy.stats import gaussian_kde
-from utils import plot_kde, plot_new_points, save_as_nii, save_as_normal_file, save_as_nii_layers, get_sign_of_number, \
-    construct_3d_volume_array, generate_obj_file
-from math_utils import rotate_vector, get_points_between_2_points
 import trimesh
-from skimage import measure
-from mayavi import mlab
-import open3d as o3d
+from scipy.stats import gaussian_kde
+
+import math_utils
+import utils
 
 
-def calculate_average(skeleton_distances, start_distances, end_distances):
-    average_skeleton_distances = {}
-    # calculate average skeleton distances
-    for skeleton_distance in skeleton_distances:
-        distances = skeleton_distances[skeleton_distance]
-        for i, distances_on_point in distances.items():
-            if i not in average_skeleton_distances:
-                average_skeleton_distances[i] = {}
-            for j, distance in enumerate(distances_on_point):
-                if j not in average_skeleton_distances[i]:
-                    average_skeleton_distances[i][j] = [0, 0]
-                average_skeleton_distances[i][j][0] += distance
-                average_skeleton_distances[i][j][1] += 1
-    # calculate averages
-    for i in average_skeleton_distances:
-        for j in average_skeleton_distances[i]:
-            average_skeleton_distances[i][j][0] /= average_skeleton_distances[i][j][1]
-    print(average_skeleton_distances)
-    # calculate average start distances
-    average_start_distances = {}
-    for start_distance in start_distances:
-        distances = start_distances[start_distance]
-        for i, distances_on_point in distances.items():
-            if i not in average_start_distances:
-                average_start_distances[i] = [0, 0]
-            average_start_distances[i][0] += distances_on_point
-            average_start_distances[i][1] += 1
-    for i in average_start_distances:
-        average_start_distances[i][0] /= average_start_distances[i][1]
-    print(average_start_distances)
-    # calculate average end distances
-    average_end_distances = {}
-    for end_distance in end_distances:
-        distances = end_distances[end_distance]
-        for i, distances_on_point in distances.items():
-            if i not in average_end_distances:
-                average_end_distances[i] = [0, 0]
-            average_end_distances[i][0] += distances_on_point
-            average_end_distances[i][1] += 1
-    for i in average_end_distances:
-        average_end_distances[i][0] /= average_end_distances[i][1]
-    print(average_end_distances)
-    return average_skeleton_distances, average_start_distances, average_end_distances
-
-
-def group_distances(skeleton_distances, start_distances, end_distances, curvatures):
-    print('grouping distances')
-    skeleton = group_skeleton_data(skeleton_distances)
-    start = group_both_ends_data(start_distances)
-    end = group_both_ends_data(end_distances)
-    curvature = group_curvatures_data(curvatures)
-    return skeleton, start, end, curvature
-
-
-def group_skeleton_data(data):
-    grouped_data = {}
-    for skeleton_distance in data:
-        distances = data[skeleton_distance]
-        for i, distances_on_point in distances.items():
-            if i not in grouped_data:
-                grouped_data[i] = {}
-            for distance in distances_on_point:
-                if distance[1] not in grouped_data[i]:
-                    grouped_data[i][distance[1]] = []
-                grouped_data[i][distance[1]].append(distance[0])
-    return grouped_data
-
-
-def group_both_ends_data(data):
-    grouped_data = {}
-    for skeleton_distance in data:
-        distances = data[skeleton_distance]
-        for i, distance in distances.items():
-            if i not in grouped_data:
-                grouped_data[i] = []
-            grouped_data[i].append(distance)
-    return grouped_data
-
-
-def group_curvatures_data(data):
-    grouped_data = {}
-    for skeleton_curvatures in data:
-        curvatures = data[skeleton_curvatures]
-        for i, curvature in enumerate(curvatures):
-            if i not in grouped_data:
-                grouped_data[i] = []
-            grouped_data[i].append(curvature)
-    return grouped_data
-
-
-def calculate_new_skeleton_point(previous_point, curvature_value):
-    radius_of_circle = abs(1 / curvature_value)
+def calculate_new_skeleton_point(previous_point, curvature_value, distance_between_points):
+    radius_of_circle = abs(distance_between_points / curvature_value)
     center_of_circle = np.copy(previous_point)
     if curvature_value < 0:
         center_of_circle[1] -= radius_of_circle
-        return find_new_skeleton_point(center_of_circle, previous_point, radius_of_circle, 1)
+        return find_new_skeleton_point(center_of_circle, previous_point, radius_of_circle, distance_between_points, 1)
     elif curvature_value > 0:
         center_of_circle[1] += radius_of_circle
-        return find_new_skeleton_point(center_of_circle, previous_point, radius_of_circle, -1)
+        return find_new_skeleton_point(center_of_circle, previous_point, radius_of_circle, distance_between_points, -1)
     else:
         # curvature value is 0 -> take only straight point
-        return [0, previous_point[1], previous_point[2] + 1]
+        return [0, previous_point[1], previous_point[2] + distance_between_points]
 
 
-def find_new_skeleton_point(center, current_point, radius, direction):
-    theta = 1 / radius
-    phi = np.pi / 2 * get_sign_of_number(current_point[1] - center[1])
+def find_new_skeleton_point(center, current_point, radius, distance_between_points, direction):
+    theta = distance_between_points / radius
+    phi = np.pi / 2 * utils.get_sign_of_number(current_point[1] - center[1])
     z1 = center[2] + radius * math.cos(phi + theta)
     if direction == -1:
         z1 = center[2] + radius * math.cos(phi - theta)
@@ -127,146 +32,124 @@ def find_new_skeleton_point(center, current_point, radius, direction):
     return [0, y1, z1]
 
 
-def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, num_files):
+def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, num_files, direction_with_angles):
     # calculate skeleton points based on curvature
     print('finding new skeleton points')
     new_points, total_skeleton_points, edge_points = [], [], []
     start_edge_points, end_edge_points, skeleton_points = [], [], []
-    for _ in range(num_files):
+    skeleton_points_dict = {}
+    start_points_dict = {}
+    for i in range(num_files):
         new_points.append([])
         start_edge_points.append([])
         end_edge_points.append([])
         skeleton_points.append([])
         total_skeleton_points.append(np.array([[0, 0, 0]], dtype=float))
         edge_points.append([])
+        skeleton_points_dict[i] = {}
+        start_points_dict[i] = {}
     for c in curvature:
         data = curvature[c]
         kde = gaussian_kde(data)
-        # range_distances = np.linspace(min(data), max(data), 10000)
-        # pdf_estimation = kde(range_distances)
-        # cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-        # samples = np.random.normal(0, 1, num_files)
         new_curvatures = kde.resample(num_files)
         for i, sample in enumerate(new_curvatures):
-            # new_curvature = np.interp(sample, cdf_estimation, range_distances)
             new_curvature = sample[0]
-            # skeleton_points = np.append(skeleton_points, [calculate_new_skeleton_point(skeleton_points[-1], new_curvature)], axis=0)
             total_skeleton_points[i] = np.append(total_skeleton_points[i], [
-                calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature)], axis=0)
-    # skeleton_points = np.column_stack((np.zeros(10), np.zeros(10), np.linspace(1, 10, 10, endpoint=True)))
-    # skeleton_points = np.array(skeleton_points)
-    # plot_new_points(total_skeleton_points[0])
+                calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, 1)], axis=0)
+    # generate points on skeleton
+    # print('generating skeleton points')
+    # for point, distances_around in skeleton_distances.items():
+    #     for angle, distances in distances_around.items():
+    #         distances.sort()
+    #         distances = np.array(distances)
+    #         kde = gaussian_kde(distances)
+    #         new_distances = kde.resample(num_files)
+    #         for i, sample in enumerate(new_distances):
+    #             if point not in skeleton_points_dict[i]:
+    #                 skeleton_points_dict[i][point] = {}
+    #             new_distance = sample[0]
+    #             # calculate new boundary point in 3D space
+    #             direction = math_utils.rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
+    #             new_point = new_distance * np.array(direction) + total_skeleton_points[i][point]
+    #             skeleton_points_dict[i][point][angle % 360] = new_point
     # start
     print('generating start points')
     for direction, distances in start_distances.items():
         distances.sort()
         distances = np.array(distances)
         kde = gaussian_kde(distances)
-        # range_distances = np.linspace(min(distances), max(distances), 10000)
-        # pdf_estimation = kde(range_distances)
-        # plot_kde(range_distances, pdf_estimation)
-        # cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-        # samples = np.random.normal(0, 1, num_files)
         new_distances = kde.resample(num_files)
+        theta, phi = direction_with_angles[direction]
         for i, sample in enumerate(new_distances):
-            # new_distance = np.interp(sample, cdf_estimation, range_distances)
             new_distance = sample[0]
             # new_distance *= 10
             # calculate new boundary point in 3D space
             new_point = new_distance * (direction * np.array(-1)) + total_skeleton_points[i][-1]
-            edge_points[i].append(new_point)
-            new_points[i].extend(get_points_between_2_points(np.array(([0, 0, 0])), new_point, math.ceil(new_distance)))
+            # edge_points[i].append(new_point)
+            # new_points[i].extend(get_points_between_2_points(np.array(([0, 0, 0])), new_point, math.ceil(new_distance)))
             # new_points[i].append(new_point)
-            start_edge_points[i].append(new_point)
+            # start_edge_points[i].append(new_point)
+            start_points_dict[theta][phi] = new_point
         # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
         # new_points.append(new_point)
-    # end
-    print('generating end points')
-    for direction, distances in end_distances.items():
-        distances.sort()
-        distances = np.array(distances)
-        kde = gaussian_kde(distances)
-        # range_distances = np.linspace(min(distances), max(distances), 10000)
-        # pdf_estimation = kde(range_distances)
-        # plot_kde(range, pdf_estimation)
-        # cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-        # samples = np.random.normal(0, 1, num_files)
-        new_distances = kde.resample(num_files)
-        for i, sample in enumerate(new_distances):
-            # new_distance = np.interp(sample, cdf_estimation, range_distances)
-            new_distance = sample[0]
-            # new_distance *= 10
-            # calculate new boundary point in 3D space
-            new_point = new_distance * np.array(direction)
-            edge_points[i].append(new_point)
-            new_points[i].extend(
-                get_points_between_2_points(total_skeleton_points[i][-1], new_point, math.ceil(new_distance)))
-            # new_points[i].append(new_point)
-            end_edge_points[i].append(new_point)
-            # new_point = direction + last_point
-            # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
-            # new_points.append(new_point)
-    # generate points on skeleton
-    print('generating skeleton points')
-    for point, distances_around in skeleton_distances.items():
-        for angle, distances in distances_around.items():
-            distances.sort()
-            distances = np.array(distances)
-            kde = gaussian_kde(distances)
-            # range_distances = np.linspace(min(distances), max(distances), 10000)
-            # pdf_estimation = kde(range_distances)
-            # plot_kde(range, pdf_estimation)
-            # cdf_estimation = np.cumsum(pdf_estimation) / np.sum(pdf_estimation)
-            # samples = np.random.normal(0, 1, num_files)
-            new_distances = kde.resample(num_files)
-            for i, sample in enumerate(new_distances):
-                # new_distance = np.interp(sample, cdf_estimation, range_distances)
-                new_distance = sample[0]
-                # new_distance *= 10
-                # calculate new boundary point in 3D space
-                direction = rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
-                new_point = new_distance * np.array(direction) + total_skeleton_points[i][point]
-                edge_points[i].append(new_point)
-                # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
-                new_points[i].extend(
-                    get_points_between_2_points(total_skeleton_points[i][point], new_point, math.ceil(new_distance)))
-                # new_points[i].append(new_point)
-                skeleton_points[i].append(new_point)
-                # new_points.append(new_point)
+    # # end
+    # print('generating end points')
+    # for direction, distances in end_distances.items():
+    #     distances.sort()
+    #     distances = np.array(distances)
+    #     kde = gaussian_kde(distances)
+    #     new_distances = kde.resample(num_files)
+    #     for i, sample in enumerate(new_distances):
+    #         # new_distance = np.interp(sample, cdf_estimation, range_distances)
+    #         new_distance = sample[0]
+    #         # new_distance *= 10
+    #         # calculate new boundary point in 3D space
+    #         new_point = new_distance * np.array(direction)
+    #         edge_points[i].append(new_point)
+    #         new_points[i].extend(
+    #             get_points_between_2_points(total_skeleton_points[i][-1], new_point, math.ceil(new_distance)))
+    #         # new_points[i].append(new_point)
+    #         end_edge_points[i].append(new_point)
+    #         # new_point = direction + last_point
+    #         # new_point = [math.trunc(new_point[0]), math.trunc(new_point[1]), math.trunc(new_point[2])]
+    #         # new_points.append(new_point)
     for i in range(num_files):
-        new_points[i] = np.array(new_points[i])
-        edge_points[i] = np.array(edge_points[i])
-        generate_mesh(new_points[i], i, edge_points[i])
+        vertices, faces = generate_mesh(skeleton_points_dict[i])
+        utils.generate_obj_file(vertices, faces, f'test_{i}.obj')
+        tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+        smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
+        utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth_{i}.obj')
     # save_as_nii_layers(start_edge_points, end_edge_points, skeleton_points)
     # save_as_nii(new_points)
     # save_as_normal_file(new_points, 1)
 
 
-def generate_mesh(points, id, edge_points):
-    print('Generating mesh')
-    volume, mask = construct_3d_volume_array(points, edge_points)
-    vertices, faces, normals, values = measure.marching_cubes(volume=volume, mask=mask)
-    generate_obj_file(vertices, faces, f'original_{id}.obj')
-    # mesh = o3d.geometry.TriangleMesh()
-    # mesh.vertices = o3d.utility.Vector3dVector(vertices)
-    # mesh.triangles = o3d.utility.Vector3iVector(faces)
-    # o3d.visualization.draw_geometries([mesh], mesh_show_wireframe=True)
-    # mlab.triangular_mesh([vert[0] for vert in vertices],
-    #                      [vert[1] for vert in vertices],
-    #                      [vert[2] for vert in vertices],
-    #                      faces)
-    # mlab.show()
-    # tri = scipy.spatial.Delaunay(vertices, incremental=True)
-    # print('Gotovo')
-    tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
-    generate_obj_file(smooth.vertices, smooth.faces, f'smooth_{id}.obj')
-    # smooth_vertices = smooth.vertices
+def generate_mesh(skeleton_points):
+    vertices, faces = [], []
+    # skeleton points
+    point_vertice_indexes = {}
+    index = 0
+    for ring, points_at_angle in skeleton_points.items():
+        angles = list(points_at_angle.keys())
+        angles.sort()
+        for angle in angles:
+            point = points_at_angle[angle]
+            vertices.append(point)
+            key = (point[0], point[1], point[2])
+            point_vertice_indexes[key] = index
+            if ring > 1 and angle > 0:
+                # triangle_1 = [point, points_at_angle[angle - 1], skeleton_points[ring - 1][angle - 1]]
+                previous_point_same_ring = points_at_angle[angle - 1]
+                previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
+                previous_point_previous_ring = skeleton_points[ring - 1][angle - 1]
+                previous_point_previous_ring_key = (previous_point_previous_ring[0], previous_point_previous_ring[1], previous_point_previous_ring[2])
+                same_point_previous_ring = skeleton_points[ring - 1][angle]
+                same_point_previous_ring_key = (same_point_previous_ring[0], same_point_previous_ring[1], same_point_previous_ring[2])
+                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                faces.append(triangle_1)
+                # triangle_2 = [point, skeleton_points[ring - 1][angle - 1], skeleton_points[ring - 1][angle]]
+                triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
+                faces.append(triangle_2)
+            index += 1
+    return vertices, faces
 
-    # cloud = pv.PolyData(points)
-    # # cloud.plot()
-    #
-    # # print('Generating geometry')
-    # volume = cloud.reconstruct_surface(progress_bar=True)
-    # shell = volume.extract_geometry()
-    # shell.plot()

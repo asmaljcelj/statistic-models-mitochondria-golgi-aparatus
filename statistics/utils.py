@@ -90,7 +90,6 @@ def plot_sampling_with_shape(shape, sampled_points, skeleton, parametrized_point
 def read_file_collect_points(filename, base_folder):
     if filename.endswith('.nii'):
         return None
-    print('processing', filename)
     file_path = base_folder + filename
     points = []
     with open(file_path) as csv_file:
@@ -233,7 +232,6 @@ def construct_3d_volume_array(points, edge_points):
     return volume_array, np.array(mask, dtype='bool')
 
 
-
 def generate_obj_file(vertices, faces, filename):
     with open('../results/' + filename, 'w') as f:
         for vertex in vertices:
@@ -277,3 +275,47 @@ def plot_distribution_end_points(data):
         plt.grid(True)
         plt.show()
 
+
+def group_distances(skeleton_distances, start_distances, end_distances, curvatures):
+    print('grouping distances')
+    skeleton = group_skeleton_data(skeleton_distances)
+    start = group_both_ends_data(start_distances)
+    end = group_both_ends_data(end_distances)
+    curvature = group_curvatures_data(curvatures)
+    return skeleton, start, end, curvature
+
+
+def group_skeleton_data(data):
+    grouped_data = {}
+    for skeleton_distance in data:
+        distances = data[skeleton_distance]
+        for i, distances_on_point in distances.items():
+            if i not in grouped_data:
+                grouped_data[i] = {}
+            for distance in distances_on_point:
+                if distance[1] not in grouped_data[i]:
+                    grouped_data[i][distance[1]] = []
+                grouped_data[i][distance[1]].append(distance[0])
+    return grouped_data
+
+
+def group_both_ends_data(data):
+    grouped_data = {}
+    for skeleton_distance in data:
+        distances = data[skeleton_distance]
+        for i, distance in distances.items():
+            if i not in grouped_data:
+                grouped_data[i] = []
+            grouped_data[i].append(distance)
+    return grouped_data
+
+
+def group_curvatures_data(data):
+    grouped_data = {}
+    for skeleton_curvatures in data:
+        curvatures = data[skeleton_curvatures]
+        for i, curvature in enumerate(curvatures):
+            if i not in grouped_data:
+                grouped_data[i] = []
+            grouped_data[i].append(curvature)
+    return grouped_data

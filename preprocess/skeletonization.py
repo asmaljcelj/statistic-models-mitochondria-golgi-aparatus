@@ -1,10 +1,9 @@
-import nibabel as nib
 import os
+
+import nibabel as nib
 import numpy as np
-from scipy.interpolate import RegularGridInterpolator
 from scipy.spatial import KDTree
-from scipy.interpolate import CubicSpline
-from skimage.morphology import skeletonize_3d, skeletonize
+from skimage.morphology import skeletonize
 
 folder = '../extracted_data'
 results_folder = '../skeletons'
@@ -45,21 +44,6 @@ for filename in os.listdir(folder):
                     points_y.append(y)
                     points_z.append(z)
                     final_points.append([x, y, z])
-
-    # x_space = np.linspace(0, result.shape[0], result.shape[0], endpoint=False)
-    # y_space = np.linspace(0, result.shape[1], result.shape[1], endpoint=False)
-    # z_space = np.linspace(0, result.shape[2], result.shape[2], endpoint=False)
-    #
-    # interp = RegularGridInterpolator((x_space, y_space, z_space), result, method='cubic')
-    #
-    # smoothed_result = np.zeros((result.shape[0], result.shape[1], result.shape[2]), dtype='uint8')
-    # nonzero_values = np.nonzero(interp.values)
-    # for i in range(len(nonzero_values[0])):
-    #     x = nonzero_values[0][i]
-    #     y = nonzero_values[1][i]
-    #     z = nonzero_values[2][i]
-    #     if interp([x, y, z]) > 100:
-    #         smoothed_result[x][y][z] = 255
 
     # sorted_values = sort_points(final_points)
     np.savetxt('../skeletons/' + os.path.splitext(filename)[0] + '.csv', final_points, delimiter=',', fmt='%-0d')

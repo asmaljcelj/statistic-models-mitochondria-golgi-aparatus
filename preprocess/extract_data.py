@@ -12,8 +12,7 @@ for filename in os.listdir(data_directory):
     print('processing file:', filename)
     nib_image = nib.load(relative_file_path)
     image_data = nib_image.get_fdata()
-    mitochondria_instances = {}
-    instances_on_edge = []
+    mitochondria_instances, instances_on_edge = {}, []
 
     # read voxels
     for x, data_yz in enumerate(image_data):

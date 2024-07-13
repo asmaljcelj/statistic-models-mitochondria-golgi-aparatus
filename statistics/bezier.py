@@ -2,8 +2,9 @@ import math
 import os
 
 import numpy as np
-from math_utils import magnitude, extract_points, calculate_B
-from utils import plot_save_result
+
+import math_utils
+import utils
 
 skeletons_folder = '../skeletons/'
 number_of_plots = 10
@@ -16,7 +17,7 @@ def calculate_bezier_derivative(n, points, t):
     value = 0
     for i in range(n):
         q = n * (points[i + 1] - points[i])
-        value += calculate_B(n - 1, i, t) * q
+        value += math_utils.calculate_B(n - 1, i, t) * q
     return value
 
 
@@ -25,14 +26,14 @@ def calculate_bezier_second_derivative(n, points, t):
     for i in range(n - 1):
         q_i = points[i + 1] - points[i]
         q_i_plus_1 = points[i + 2] - points[i + 1]
-        value += calculate_B(n - 2, i, t) * (n - 1) * (q_i_plus_1 - q_i)
+        value += math_utils.calculate_B(n - 2, i, t) * (n - 1) * (q_i_plus_1 - q_i)
     return value
 
 
 def calculate_bezier_third_derivative(n, points, t):
     value = n * (n - 1) * (n - 2)
     for i in range(n - 2):
-        value += (calculate_B(n - 3, i, t) * (points[i + 3] - 3 * points[i + 2] + 3 * points[i + 1] - points[i]))
+        value += (math_utils.calculate_B(n - 3, i, t) * (points[i + 3] - 3 * points[i + 2] + 3 * points[i + 1] - points[i]))
     return value
 
 
@@ -40,7 +41,7 @@ def calculate_bezier_point(n, points, t):
     value = 0
     # from 0 to n
     for i in range(n + 1):
-        value += calculate_B(n, i, t) * points[i]
+        value += math_utils.calculate_B(n, i, t) * points[i]
     return value
 
 
@@ -58,8 +59,8 @@ def bezier_nth_order_and_parametrization(n, points, num_of_points_on_curve):
         length += math.dist(points[0], points[1])
     # Cubic interpolator
     # calculate derivative at t = 0 and t = 1
-    t0_deriv_scaled = magnitude(calculate_bezier_derivative(n, points, 0)) / length
-    t1_deriv_scaled = magnitude(calculate_bezier_derivative(n, points, 1)) / length
+    t0_deriv_scaled = math_utils.magnitude(calculate_bezier_derivative(n, points, 0)) / length
+    t1_deriv_scaled = math_utils.magnitude(calculate_bezier_derivative(n, points, 1)) / length
     c = 1 / t0_deriv_scaled
     a = c + 1 / t1_deriv_scaled - 2
     b = 1 - c - a
@@ -107,7 +108,7 @@ if __name__ == '__main__':
 
         n = 5
         with open(file_path) as csv_file:
-            points = extract_points(csv_file)
+            points = math_utils.extract_points(csv_file)
 
             np_points = np.array(points)
 
@@ -127,6 +128,6 @@ if __name__ == '__main__':
             #     char_points.append(np_points[len(points) - 1])
             #     whole_curve, approx = bezier_nth_order_and_parametrization(n, char_points, 10)
             #     if plotting_enabled:
-            plot_save_result(current_plot_count, whole_curve, np_points, approx, number_of_plots, filename)
+            utils.plot_save_result(current_plot_count, whole_curve, np_points, approx, number_of_plots, filename)
             # else:
             #     print('not enough points to construct Bezier curve')
