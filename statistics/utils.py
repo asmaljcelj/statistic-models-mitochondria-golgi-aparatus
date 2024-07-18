@@ -1,4 +1,5 @@
 import csv
+import datetime
 import math
 import time
 import matplotlib.pyplot as plt
@@ -8,6 +9,11 @@ import nibabel as nib
 from mpl_toolkits.mplot3d import Axes3D
 from sympy.integrals.intpoly import point_sort
 from collections import Counter
+
+
+def print_log(message):
+    ct = datetime.datetime.now()
+    print(ct, ":", message)
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
@@ -277,7 +283,7 @@ def plot_distribution_end_points(data):
 
 
 def group_distances(skeleton_distances, start_distances, end_distances, curvatures):
-    print('grouping distances')
+    print_log('grouping distances')
     skeleton = group_skeleton_data(skeleton_distances)
     start = group_both_ends_data(start_distances)
     end = group_both_ends_data(end_distances)
@@ -319,3 +325,29 @@ def group_curvatures_data(data):
                 grouped_data[i] = []
             grouped_data[i].append(curvature)
     return grouped_data
+
+
+def group_edge_points_by_theta_extract_top_point(data, num_of_groups=5):
+    top_point = data.popitem()
+    if len(data) % num_of_groups != 0:
+        raise Exception('Number of groups must be divisible by number of data')
+    sorted_data = sorted(data.items(), key=lambda x: x[1][0], reverse=True)
+    # theta_values = [v[0] for v in data.values()]
+    # min_value = min(theta_values)
+    # max_value = max(theta_values)
+    # interval = (max_value - min_value) / num_of_groups
+    group_size = len(sorted_data) // num_of_groups
+    grouped_data = {}
+    for i in range(num_of_groups):
+        grouped_data[i] = []
+    # for point, angles in data.items():
+    for i, (point, angles) in enumerate(sorted_data):
+        # theta = angles[0]
+        # group_index = (theta - min_value) // interval
+        group_index = i // group_size
+        if group_index >= num_of_groups:
+            group_index = num_of_groups - 1
+        grouped_data[group_index].append((point, angles))
+    for i, points in grouped_data.items():
+        grouped_data[i] = sorted(grouped_data[i], key=lambda x: x[1][1], reverse=True)
+    return grouped_data, top_point

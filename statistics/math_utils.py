@@ -71,9 +71,9 @@ def random_cosine(u, v, m):
     phi = 2 * np.pi * v
 
     # Switch to cartesian coordinates
-    x = np.sin(theta) * np.cos(phi)
-    y = np.sin(theta) * np.sin(phi)
-    z = np.cos(theta)
+    x = np.round(np.sin(theta) * np.cos(phi), 6)
+    y = np.round(np.sin(theta) * np.sin(phi), 6)
+    z = np.round(np.cos(theta), 6)
 
     coordinate_angle_dict = {(x_coord, y_coord, z_coord): (t, p) for x_coord, y_coord, z_coord, t, p in zip(x, y, z, theta, phi)}
 

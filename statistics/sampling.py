@@ -12,6 +12,9 @@ def sample_direction_vectors(num_of_samples):
     # source: http://blog.thomaspoulet.fr/uniform-sampling-on-unit-hemisphere/
     u_samples = np.random.uniform(0, 1, num_of_samples)
     v_samples = np.random.uniform(0, 1, num_of_samples)
+    u_samples = np.append(u_samples, [0], axis=0)
+    v_samples = np.append(v_samples, [0], axis=0)
+    # sample another
     return math_utils.random_cosine(u_samples, v_samples, 1)
 
 
@@ -20,8 +23,7 @@ def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
     R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal)
     sampled_points_t = {}
     distances = {}
-    for point in points_on_hemisphere:
-        direction_vector = math_utils.normalize(point)
+    for direction_vector in points_on_hemisphere:
         rotated_vector = np.dot(R, direction_vector)
         distance, sampled_points = iterate_ray(end_point, rotated_vector, shape)
         key = (direction_vector[0], direction_vector[1], direction_vector[2])
@@ -108,7 +110,7 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
 
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
-    num_of_points, n, num_of_samples, num_files = 10, 5, 1000, 1
+    num_of_points, n, num_of_samples, num_files = 10, 5, 500, 1
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all = {}, {}, {}, {}
     direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples)
     for filename in os.listdir(skeletons_folder):
