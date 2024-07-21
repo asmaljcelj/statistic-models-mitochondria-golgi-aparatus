@@ -9,6 +9,7 @@ import nibabel as nib
 from mpl_toolkits.mplot3d import Axes3D
 from sympy.integrals.intpoly import point_sort
 from collections import Counter
+import math_utils
 
 
 def print_log(message):
@@ -351,3 +352,15 @@ def group_edge_points_by_theta_extract_top_point(data, num_of_groups=5):
     for i, points in grouped_data.items():
         grouped_data[i] = sorted(grouped_data[i], key=lambda x: x[1][1], reverse=True)
     return grouped_data, top_point
+
+
+def dict_key_from_point(point):
+    return point[0], point[1], point[2]
+
+
+def get_nearest_point(current_point, point1, point2):
+    current_distance1 = math_utils.distance_between_points(current_point, point1)
+    current_distance2 = math_utils.distance_between_points(current_point, point2)
+    if current_distance2< current_distance1:
+        return point1
+    return point2

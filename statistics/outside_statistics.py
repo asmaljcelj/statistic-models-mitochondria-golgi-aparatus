@@ -138,49 +138,11 @@ def generate_mesh(skeleton_points, start_points, end_points):
     # skeleton points
     point_vertice_indexes = {}
     index = 0
-    points_on_ring = -1
-    for ring, points_at_angle in skeleton_points.items():
-        angles = list(points_at_angle.keys())
-        angles.sort()
-        points_on_ring = len(angles)
-        for angle in angles:
-            point = points_at_angle[angle]
-            vertices.append(point)
-            key = (point[0], point[1], point[2])
-            point_vertice_indexes[key] = index
-            # todo: ali handlem zadnji primer, da zadnji kot povezem s prvim????
-            if ring > 1 and angle > 0:
-                # triangle_1 = [point, points_at_angle[angle - 1], skeleton_points[ring - 1][angle - 1]]
-                previous_point_same_ring = points_at_angle[angle - 1]
-                previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
-                previous_point_previous_ring = skeleton_points[ring - 1][angle - 1]
-                previous_point_previous_ring_key = (previous_point_previous_ring[0], previous_point_previous_ring[1], previous_point_previous_ring[2])
-                same_point_previous_ring = skeleton_points[ring - 1][angle]
-                same_point_previous_ring_key = (same_point_previous_ring[0], same_point_previous_ring[1], same_point_previous_ring[2])
-                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
-                faces.append(triangle_1)
-                # triangle_2 = [point, skeleton_points[ring - 1][angle - 1], skeleton_points[ring - 1][angle]]
-                triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
-                faces.append(triangle_2)
-                if angle == len(angles) - 1:
-                    # zadnjo vozlisce povezi s prvim
-                    previous_point_same_ring = points_at_angle[0]
-                    previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
-                    same_point_previous_ring = skeleton_points[ring - 1][angle]
-                    same_point_previous_ring_key = (same_point_previous_ring[0], same_point_previous_ring[1], same_point_previous_ring[2])
-                    previous_point_previous_ring = skeleton_points[ring - 1][0]
-                    previous_point_previous_ring_key = (previous_point_previous_ring[0], previous_point_previous_ring[1], previous_point_previous_ring[2])
-                    triangle_4 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
-                    faces.append(triangle_4)
-                    triangle_5 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
-                    faces.append(triangle_5)
-            index += 1
     # start points
     print('start points')
     grouped_data_start, top_point_start = utils.group_edge_points_by_theta_extract_top_point(start_points)
     top_point_start = top_point_start[0]
     for group_index, group in grouped_data_start.items():
-        interval = points_on_ring / len(group)
         if group_index == len(grouped_data_start) - 1:
             # before processing last ring, add top point to vertices
             vertices.append(top_point_start)
@@ -197,18 +159,18 @@ def generate_mesh(skeleton_points, start_points, end_points):
                 continue
             if group_index == 0:
                 # todo: connect with skeleton points
-                previous_point_same_ring = group[index_inside_group - 1][0]
-                previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
-                skeleton_angle_same_point = round(interval * index_inside_group)
-                same_point_on_skeleton = skeleton_points[list(skeleton_points)[-1]][skeleton_angle_same_point]
-                same_point_on_skeleton_key = (same_point_on_skeleton[0], same_point_on_skeleton[1], same_point_on_skeleton[2])
-                skeleton_angle_previous_point = round(interval * (index_inside_group - 1))
-                previous_point_on_skeleton = skeleton_points[list(skeleton_points)[-1]][skeleton_angle_previous_point]
-                previous_point_on_skeleton_key = (previous_point_on_skeleton[0], previous_point_on_skeleton[1], previous_point_on_skeleton[2])
-                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_on_skeleton_key]]
-                faces.append(triangle_1)
-                triangle_2 = [index, point_vertice_indexes[previous_point_on_skeleton_key], point_vertice_indexes[same_point_on_skeleton_key]]
-                faces.append(triangle_2)
+                # previous_point_same_ring = group[index_inside_group - 1][0]
+                # previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
+                # skeleton_angle_same_point = round(interval * index_inside_group)
+                # same_point_on_skeleton = skeleton_points[list(skeleton_points)[-1]][skeleton_angle_same_point]
+                # same_point_on_skeleton_key = (same_point_on_skeleton[0], same_point_on_skeleton[1], same_point_on_skeleton[2])
+                # skeleton_angle_previous_point = round(interval * (index_inside_group - 1))
+                # previous_point_on_skeleton = skeleton_points[list(skeleton_points)[-1]][skeleton_angle_previous_point]
+                # previous_point_on_skeleton_key = (previous_point_on_skeleton[0], previous_point_on_skeleton[1], previous_point_on_skeleton[2])
+                # triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_on_skeleton_key]]
+                # faces.append(triangle_1)
+                # triangle_2 = [index, point_vertice_indexes[previous_point_on_skeleton_key], point_vertice_indexes[same_point_on_skeleton_key]]
+                # faces.append(triangle_2)
                 index += 1
                 continue
             # todo: handle so last one connects to first one
@@ -239,11 +201,12 @@ def generate_mesh(skeleton_points, start_points, end_points):
                 triangle_5 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                 faces.append(triangle_5)
             index += 1
+    # end points
     print('end points')
     grouped_data_end, top_point = utils.group_edge_points_by_theta_extract_top_point(end_points)
     top_point = top_point[0]
+    end_edge_points = []
     for group_index, group in grouped_data_end.items():
-        interval = points_on_ring / len(group)
         if group_index == len(grouped_data_end) - 1:
             # before processing last ring, add top point to vertices
             vertices.append(top_point)
@@ -259,27 +222,27 @@ def generate_mesh(skeleton_points, start_points, end_points):
                 # edge case, where first point can't connect to the previous one
                 continue
             if group_index == 0:
-                previous_point_same_ring = group[index_inside_group - 1][0]
-                previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
-                skeleton_angle_same_point = round(interval * index_inside_group)
-                same_point_on_skeleton = skeleton_points[1][skeleton_angle_same_point]
-                same_point_on_skeleton_key = (same_point_on_skeleton[0], same_point_on_skeleton[1], same_point_on_skeleton[2])
-                skeleton_angle_previous_point = round(interval * (index_inside_group - 1))
-                previous_point_on_skeleton = skeleton_points[1][skeleton_angle_previous_point]
-                previous_point_on_skeleton_key = (previous_point_on_skeleton[0], previous_point_on_skeleton[1], previous_point_on_skeleton[2])
-                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_on_skeleton_key]]
-                faces.append(triangle_1)
-                triangle_2 = [index, point_vertice_indexes[previous_point_on_skeleton_key], point_vertice_indexes[same_point_on_skeleton_key]]
-                faces.append(triangle_2)
+                end_edge_points.append(point)
+                # previous_point_same_ring = group[index_inside_group - 1][0]
+                # previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
+                # skeleton_angle_same_point = round(interval * index_inside_group)
+                # same_point_on_skeleton = skeleton_points[1][skeleton_angle_same_point]
+                # same_point_on_skeleton_key = (same_point_on_skeleton[0], same_point_on_skeleton[1], same_point_on_skeleton[2])
+                # skeleton_angle_previous_point = round(interval * (index_inside_group - 1))
+                # previous_point_on_skeleton = skeleton_points[1][skeleton_angle_previous_point]
+                # previous_point_on_skeleton_key = (previous_point_on_skeleton[0], previous_point_on_skeleton[1], previous_point_on_skeleton[2])
+                # triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_on_skeleton_key]]
+                # faces.append(triangle_1)
+                # triangle_2 = [index, point_vertice_indexes[previous_point_on_skeleton_key], point_vertice_indexes[same_point_on_skeleton_key]]
+                # faces.append(triangle_2)
                 index += 1
                 continue
-            # todo: handle so last one connects to first one
             previous_point_same_ring = group[index_inside_group - 1][0]
-            previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
+            previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
             same_point_previous_ring = grouped_data_end[group_index - 1][index_inside_group][0]
-            same_point_previous_ring_key = (same_point_previous_ring[0], same_point_previous_ring[1], same_point_previous_ring[2])
+            same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
             previous_point_previous_ring = grouped_data_end[group_index - 1][index_inside_group - 1][0]
-            previous_point_previous_ring_key = (previous_point_previous_ring[0], previous_point_previous_ring[1], previous_point_previous_ring[2])
+            previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
             triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
             faces.append(triangle_1)
             triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
@@ -291,16 +254,67 @@ def generate_mesh(skeleton_points, start_points, end_points):
             if index_inside_group == len(group) - 1:
                 # zadnjo vozlisce povezi s prvim
                 previous_point_same_ring = group[0][0]
-                previous_point_same_ring_key = (previous_point_same_ring[0], previous_point_same_ring[1], previous_point_same_ring[2])
+                previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
                 same_point_previous_ring = grouped_data_end[group_index - 1][index_inside_group][0]
-                same_point_previous_ring_key = (same_point_previous_ring[0], same_point_previous_ring[1], same_point_previous_ring[2])
+                same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
                 previous_point_previous_ring = grouped_data_end[group_index - 1][0][0]
-                previous_point_previous_ring_key = (previous_point_previous_ring[0], previous_point_previous_ring[1], previous_point_previous_ring[2])
+                previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
                 triangle_4 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                 faces.append(triangle_4)
                 triangle_5 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                 faces.append(triangle_5)
             index += 1
+    current_connected_end_edge_point_index = 0
+    for ring, points_at_angle in skeleton_points.items():
+        angles = list(points_at_angle.keys())
+        angles.sort()
+        for angle in angles:
+            point = points_at_angle[angle]
+            vertices.append(point)
+            key = (point[0], point[1], point[2])
+            point_vertice_indexes[key] = index
+            if ring > 1 and angle > 0:
+                # triangle_1 = [point, points_at_angle[angle - 1], skeleton_points[ring - 1][angle - 1]]
+                previous_point_same_ring = points_at_angle[angle - 1]
+                previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
+                previous_point_previous_ring = skeleton_points[ring - 1][angle - 1]
+                previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
+                same_point_previous_ring = skeleton_points[ring - 1][angle]
+                same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
+                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                faces.append(triangle_1)
+                # triangle_2 = [point, skeleton_points[ring - 1][angle - 1], skeleton_points[ring - 1][angle]]
+                triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
+                faces.append(triangle_2)
+                if angle == len(angles) - 1:
+                    # zadnjo vozlisce povezi s prvim
+                    previous_point_same_ring = points_at_angle[0]
+                    previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
+                    same_point_previous_ring = skeleton_points[ring - 1][angle]
+                    same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
+                    previous_point_previous_ring = skeleton_points[ring - 1][0]
+                    previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
+                    triangle_4 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                    faces.append(triangle_4)
+                    triangle_5 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
+                    faces.append(triangle_5)
+            elif ring == 0:
+                # first ring connects to end points
+                if angle > 0:
+                    current_edge_point = end_edge_points[current_connected_end_edge_point_index]
+                    # don't handle angle 0 as it doesn't have previous point yet
+                    previous_point_same_ring = points_at_angle[angle - 1]
+                    previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
+                    # obtain point to connect on end points
+                    nearest_edge_point = utils.get_nearest_point(point, current_edge_point, end_edge_points[current_connected_end_edge_point_index + 1])
+                    if nearest_edge_point != current_edge_point:
+                        # create an extra triangle
+                        pass
+            elif ring == len(skeleton_points) - 1:
+                # last ring connects to start points
 
-    # end points
+                pass
+            index += 1
+
+
     return vertices, faces
