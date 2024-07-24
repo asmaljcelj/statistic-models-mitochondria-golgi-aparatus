@@ -70,6 +70,10 @@ def random_cosine(u, v, m):
     theta = np.arccos(np.power(1 - u, 1 / (1 + m)))
     phi = 2 * np.pi * v
 
+    # dodaj tocke na kroznici (z = 0)
+    theta = np.append([np.pi / 2] * 360, theta, axis=0)
+    phi = np.append([np.deg2rad(degree) for degree in range(360)], phi, axis=0)
+
     # Switch to cartesian coordinates
     x = np.round(np.sin(theta) * np.cos(phi), 6)
     y = np.round(np.sin(theta) * np.sin(phi), 6)

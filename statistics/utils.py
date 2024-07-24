@@ -244,7 +244,7 @@ def generate_obj_file(vertices, faces, filename):
         for vertex in vertices:
             f.write(f'v {vertex[0]} {vertex[1]} {vertex[2]} \n')
         for face in faces:
-            f.write(f'f {face[0]} {face[1]} {face[2]} \n')
+            f.write(f'f {face[0] + 1} {face[1] + 1} {face[2] + 1} \n')
 
 
 def plot_distribution(data):
@@ -329,6 +329,8 @@ def group_curvatures_data(data):
 
 
 def group_edge_points_by_theta_extract_top_point(data, num_of_groups=5):
+    kroznica_points = list(data.items())[:360]
+    data = dict(list(data.items())[360:])
     top_point = data.popitem()
     if len(data) % num_of_groups != 0:
         raise Exception('Number of groups must be divisible by number of data')
@@ -350,17 +352,28 @@ def group_edge_points_by_theta_extract_top_point(data, num_of_groups=5):
             group_index = num_of_groups - 1
         grouped_data[group_index].append((point, angles))
     for i, points in grouped_data.items():
-        grouped_data[i] = sorted(grouped_data[i], key=lambda x: x[1][1], reverse=True)
-    return grouped_data, top_point
+        grouped_data[i] = sorted(grouped_data[i], key=lambda x: x[1][1])
+    return grouped_data, top_point, kroznica_points
 
 
 def dict_key_from_point(point):
     return point[0], point[1], point[2]
 
 
-def get_nearest_point(current_point, point1, point2):
-    current_distance1 = math_utils.distance_between_points(current_point, point1)
-    current_distance2 = math_utils.distance_between_points(current_point, point2)
-    if current_distance2< current_distance1:
-        return point1
-    return point2
+# def get_nearest_point(current_point, point1, point2):
+#     current_distance1 = math_utils.distance_between_points(current_point, point1)
+#     current_distance2 = math_utils.distance_between_points(current_point, point2)
+#     if current_distance2 < current_distance1:
+#         return point2
+#     return point1
+
+
+def find_nearest_point_from_point(point, points):
+    min_distance, min_point, index = math.inf, None, -1
+    for i, p in enumerate(points):
+        distance = math_utils.distance_between_points(p, point)
+        if distance < min_distance:
+            min_distance = distance
+            min_point = p
+            index = i
+    return min_point, index

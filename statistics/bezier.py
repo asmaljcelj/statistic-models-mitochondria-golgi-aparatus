@@ -74,7 +74,7 @@ def bezier_nth_order_and_parametrization(n, points, num_of_points_on_curve):
         reference_point = calculate_bezier_point(n, points, f_i)
         arc_length_approx.append(reference_point)
         prev_l = l_i
-    return result, arc_length_approx
+    return result, arc_length_approx, length
 
 
 def perform_arc_length_parametrization_bezier_curve(n, points, num_points_on_the_curve):
@@ -92,8 +92,8 @@ def perform_arc_length_parametrization_bezier_curve(n, points, num_points_on_the
             control_point_index = int(i * ratio * len(points))
             control_points.append(np_points[control_point_index])
         control_points.append(np_points[len(points) - 1])
-        bezier_curve, arc_length_parametrization = bezier_nth_order_and_parametrization(n, control_points, num_points_on_the_curve)
-        return bezier_curve, arc_length_parametrization
+        bezier_curve, arc_length_parametrization, length = bezier_nth_order_and_parametrization(n, control_points, num_points_on_the_curve)
+        return bezier_curve, arc_length_parametrization, length
     else:
         print('not enough points to construct Bezier curve')
         return None, None

@@ -9,6 +9,7 @@ import utils
 
 
 def sample_direction_vectors(num_of_samples):
+    np.random.seed(10)
     # source: http://blog.thomaspoulet.fr/uniform-sampling-on-unit-hemisphere/
     u_samples = np.random.uniform(0, 1, num_of_samples)
     v_samples = np.random.uniform(0, 1, num_of_samples)
@@ -24,9 +25,11 @@ def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
     sampled_points_t = {}
     distances = {}
     for direction_vector in points_on_hemisphere:
+        if np.array_equal(direction_vector, np.array([0, 0, 1])):
+            print()
         rotated_vector = np.dot(R, direction_vector)
         distance, sampled_points = iterate_ray(end_point, rotated_vector, shape)
-        key = (direction_vector[0], direction_vector[1], direction_vector[2])
+        key = utils.dict_key_from_point(direction_vector)
         distances[key] = distance
         sampled_points_t[key] = sampled_points
     return distances
@@ -55,8 +58,7 @@ def iterate_ray(origin, direction_vector, shape):
         x_coord, y_coord, z_coord = int(new_point[0]), int(new_point[1]), int(new_point[2])
         previous_voxel = current_voxel
         current_voxel = [x_coord, y_coord, z_coord]
-        in_boundary = x_coord < shape.shape[0] and y_coord < shape.shape[1] and z_coord < shape.shape[2] and \
-                      shape[x_coord][y_coord][z_coord] > 0
+        in_boundary = x_coord < shape.shape[0] and y_coord < shape.shape[1] and z_coord < shape.shape[2] and shape[x_coord][y_coord][z_coord] > 0
         # todo: improved collision detection and distance measurement
         if not in_boundary:
             # distance += magnitude(direction_vector)
@@ -88,7 +90,7 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
 
 def perform_measurements(n, points, num_of_points, direction_vectors, object_points):
     skleton_distances = {}
-    _, arc = bezier.perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
+    _, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
     # todo: v model vkljuci tudi dolzino skeletona
     if arc is not None:
         for i in range(1, len(arc) - 2):
@@ -105,13 +107,13 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
         distances_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
         distances_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
         skeleton_curvature = calculate_skeleton_curvature_and_torsion(n, arc, num_of_points)
-    return skleton_distances, distances_start, distances_end, skeleton_curvature
+    return skleton_distances, distances_start, distances_end, skeleton_curvature, length
 
 
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
     num_of_points, n, num_of_samples, num_files = 10, 5, 500, 1
-    distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all = {}, {}, {}, {}
+    distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths = {}, {}, {}, {}, []
     direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples)
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
@@ -120,17 +122,18 @@ if __name__ == '__main__':
         if points is None:
             print('no points for file', filename)
             continue
-        distances, distance_start, distance_end, skeleton_curvature = perform_measurements(n, points, num_of_points, direction_vectors, object_points)
+        distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(n, points, num_of_points, direction_vectors, object_points)
         if distances is None:
             new_n = n
             while distances is None:
                 new_n -= 1
                 print('try to form new distances with order', new_n)
-                distances, distance_start, distance_end, skeleton_curvature = perform_measurements(new_n, points, num_of_points, direction_vectors, object_points)
+                distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(new_n, points, num_of_points, direction_vectors, object_points)
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end
         curvatures_all[filename] = skeleton_curvature
+        lengths.append(length)
 
     skeleton, start, end, curvature = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all)
-    outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles)
+    outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)
