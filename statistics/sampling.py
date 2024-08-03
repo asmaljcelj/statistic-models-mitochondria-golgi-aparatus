@@ -88,10 +88,9 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
     return curvature
 
 
-def perform_measurements(n, points, num_of_points, direction_vectors, object_points):
+def perform_measurements(n, points, num_of_points, direction_vectors, object_points, angle_increment=1):
     skleton_distances = {}
     _, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
-    # todo: v model vkljuci tudi dolzino skeletona
     if arc is not None:
         for i in range(1, len(arc) - 2):
             previous_point = arc[i - 1]
@@ -103,7 +102,7 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
             if np.any(np.isnan(normal)):
                 return None, None, None
             normal = math_utils.normalize(normal)
-            skleton_distances[i] = sample_rays(current_point, normal, object_points, vector_to_next_point)
+            skleton_distances[i] = sample_rays(current_point, normal, object_points, vector_to_next_point, angle_increment)
         distances_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
         distances_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
         skeleton_curvature = calculate_skeleton_curvature_and_torsion(n, arc, num_of_points)
@@ -113,6 +112,7 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
     num_of_points, n, num_of_samples, num_files = 10, 5, 500, 1
+    angle_increment = 1
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths = {}, {}, {}, {}, []
     direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples)
     for filename in os.listdir(skeletons_folder):
@@ -122,13 +122,13 @@ if __name__ == '__main__':
         if points is None:
             print('no points for file', filename)
             continue
-        distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(n, points, num_of_points, direction_vectors, object_points)
+        distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(n, points, num_of_points, direction_vectors, object_points, angle_increment)
         if distances is None:
             new_n = n
             while distances is None:
                 new_n -= 1
                 print('try to form new distances with order', new_n)
-                distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(new_n, points, num_of_points, direction_vectors, object_points)
+                distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(new_n, points, num_of_points, direction_vectors, object_points, angle_increment)
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end
@@ -136,4 +136,4 @@ if __name__ == '__main__':
         lengths.append(length)
 
     skeleton, start, end, curvature = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all)
-    outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)
+    outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths, angle_increment)
