@@ -8,7 +8,7 @@ import outside_statistics
 import utils
 
 
-def sample_direction_vectors(num_of_samples):
+def sample_direction_vectors(num_of_samples, skeleton_angle_increment=1):
     np.random.seed(10)
     # source: http://blog.thomaspoulet.fr/uniform-sampling-on-unit-hemisphere/
     u_samples = np.random.uniform(0, 1, num_of_samples)
@@ -16,7 +16,7 @@ def sample_direction_vectors(num_of_samples):
     u_samples = np.append(u_samples, [0], axis=0)
     v_samples = np.append(v_samples, [0], axis=0)
     # sample another
-    return math_utils.random_cosine(u_samples, v_samples, 1)
+    return math_utils.random_cosine(u_samples, v_samples, 1, skeleton_angle_increment)
 
 
 def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
@@ -25,8 +25,6 @@ def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
     sampled_points_t = {}
     distances = {}
     for direction_vector in points_on_hemisphere:
-        if np.array_equal(direction_vector, np.array([0, 0, 1])):
-            print()
         rotated_vector = np.dot(R, direction_vector)
         distance, sampled_points = iterate_ray(end_point, rotated_vector, shape)
         key = utils.dict_key_from_point(direction_vector)
@@ -111,10 +109,12 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
 
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
-    num_of_points, n, num_of_samples, num_files = 10, 5, 500, 1
-    angle_increment = 1
+    num_of_points, n, num_of_samples, num_files = 15, 5, 500, 1
+    angle_increment = 5
+    if 360 % angle_increment != 0:
+        raise Exception('angle increment has to be a multiple of 360.')
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths = {}, {}, {}, {}, []
-    direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples)
+    direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
         points = utils.read_file_collect_points(filename, skeletons_folder)
@@ -136,4 +136,6 @@ if __name__ == '__main__':
         lengths.append(length)
 
     skeleton, start, end, curvature = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all)
-    outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths, angle_increment)
+    # todo: save to file
+    utils.save_measurements_to_file('measurements.yaml', skeleton, start, end, curvature, lengths, direction_with_angles)
+    # outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)

@@ -1,20 +1,17 @@
 import csv
-import datetime
 import math
 import time
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
-import nibabel as nib
-from mpl_toolkits.mplot3d import Axes3D
-from sympy.integrals.intpoly import point_sort
 from collections import Counter
+
+import matplotlib
+import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+
 import math_utils
 
-
-def print_log(message):
-    ct = datetime.datetime.now()
-    print(ct, ":", message)
+import pickle
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
@@ -284,7 +281,7 @@ def plot_distribution_end_points(data):
 
 
 def group_distances(skeleton_distances, start_distances, end_distances, curvatures):
-    print_log('grouping distances')
+    print('grouping distances')
     skeleton = group_skeleton_data(skeleton_distances)
     start = group_both_ends_data(start_distances)
     end = group_both_ends_data(end_distances)
@@ -311,6 +308,10 @@ def group_both_ends_data(data):
     for skeleton_distance in data:
         distances = data[skeleton_distance]
         for i, distance in distances.items():
+            # key = float(i[0]), float(i[1]), float(i[2])
+            # if key not in grouped_data:
+            #     grouped_data[key] = []
+            # grouped_data[key].append(distance)
             if i not in grouped_data:
                 grouped_data[i] = []
             grouped_data[i].append(distance)
@@ -328,9 +329,10 @@ def group_curvatures_data(data):
     return grouped_data
 
 
-def group_edge_points_by_theta_extract_top_point(data, num_of_groups=5):
-    kroznica_points = list(data.items())[:360]
-    data = dict(list(data.items())[360:])
+def group_edge_points_by_theta_extract_top_point(data, num_of_groups=5, angle_increment=1):
+    num_of_points_on_kroznica = int(360 / angle_increment)
+    kroznica_points = list(data.items())[:num_of_points_on_kroznica]
+    data = dict(list(data.items())[num_of_points_on_kroznica:])
     top_point = data.popitem()
     if len(data) % num_of_groups != 0:
         raise Exception('Number of groups must be divisible by number of data')
@@ -360,14 +362,6 @@ def dict_key_from_point(point):
     return point[0], point[1], point[2]
 
 
-# def get_nearest_point(current_point, point1, point2):
-#     current_distance1 = math_utils.distance_between_points(current_point, point1)
-#     current_distance2 = math_utils.distance_between_points(current_point, point2)
-#     if current_distance2 < current_distance1:
-#         return point2
-#     return point1
-
-
 def find_nearest_point_from_point(point, points):
     min_distance, min_point, index = math.inf, None, -1
     for i, p in enumerate(points):
@@ -377,3 +371,16 @@ def find_nearest_point_from_point(point, points):
             min_point = p
             index = i
     return min_point, index
+
+
+def save_measurements_to_file(filename, skeleton, start, end, curvature, lengths, direction_with_angles):
+    combined = {'skeleton': skeleton, 'start': start, 'end': end, 'curvature': curvature, 'lengths': lengths, 'direction_with_angles': direction_with_angles}
+    with open(filename, 'wb') as file:
+        pickle.dump(combined, file)
+
+
+def read_measurements_from_file(filename):
+    print('reading result')
+    with open(filename, 'rb') as file:
+        data = pickle.load(file)
+        return data['curvature'], data['start'], data['end'], data['skeleton'], data['lengths'], data['direction_with_angles']

@@ -66,13 +66,14 @@ def get_points_between_2_points(point1, point2, num_of_points):
     return points
 
 
-def random_cosine(u, v, m):
+def random_cosine(u, v, m, skeleton_angle_increment=1):
     theta = np.arccos(np.power(1 - u, 1 / (1 + m)))
     phi = 2 * np.pi * v
 
     # dodaj tocke na kroznici (z = 0)
-    theta = np.append([np.pi / 2] * 360, theta, axis=0)
-    phi = np.append([np.deg2rad(degree) for degree in range(360)], phi, axis=0)
+    num_of_points = int(360 / skeleton_angle_increment)
+    theta = np.append([np.pi / 2] * num_of_points, theta, axis=0)
+    phi = np.append([np.deg2rad(degree) for degree in range(0, 360, skeleton_angle_increment)], phi, axis=0)
 
     # Switch to cartesian coordinates
     x = np.round(np.sin(theta) * np.cos(phi), 6)
