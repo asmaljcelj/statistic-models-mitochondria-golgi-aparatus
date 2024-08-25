@@ -57,6 +57,17 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
     plt.close()
 
 
+def plot_3d(points):
+    matplotlib.use('TkAgg')
+    x = [p[0] for p in points]
+    y = [p[1] for p in points]
+    z = [p[2] for p in points]
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.plot(x, y, z)
+    plt.show()
+
+
 def plot_sampling_with_shape(shape, sampled_points, skeleton, parametrized_points):
     matplotlib.use('TkAgg')
     colors = [

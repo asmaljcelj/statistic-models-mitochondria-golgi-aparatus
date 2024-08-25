@@ -109,8 +109,8 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
 
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
-    num_of_points, n, num_of_samples, num_files = 15, 5, 500, 1
-    angle_increment = 5
+    num_of_points, n, num_of_samples, num_files = 15, 5, 1000, 1
+    angle_increment = 3
     if 360 % angle_increment != 0:
         raise Exception('angle increment has to be a multiple of 360.')
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths = {}, {}, {}, {}, []
@@ -137,5 +137,5 @@ if __name__ == '__main__':
 
     skeleton, start, end, curvature = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all)
     # todo: save to file
-    utils.save_measurements_to_file('measurements.yaml', skeleton, start, end, curvature, lengths, direction_with_angles)
+    utils.save_measurements_to_file('measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles)
     # outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)

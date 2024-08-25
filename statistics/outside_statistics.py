@@ -1,3 +1,4 @@
+import argparse
 import math
 
 import numpy as np
@@ -6,9 +7,6 @@ from scipy.stats import gaussian_kde
 
 import math_utils
 import utils
-
-import argparse
-import os
 
 
 def calculate_new_skeleton_point(previous_point, curvature_value, distance_between_points):
@@ -29,10 +27,27 @@ def find_new_skeleton_point(center, current_point, radius, distance_between_poin
     theta = distance_between_points / radius
     phi = np.pi / 2 * utils.get_sign_of_number(current_point[1] - center[1])
     z1 = center[2] + radius * math.cos(phi + theta)
+    # y1 = center[1] + radius * math.sin(phi + theta)
     if direction == -1:
         z1 = center[2] + radius * math.cos(phi - theta)
+        # y1 = center[1] + radius * math.sin(phi - theta)
     y1 = center[1] + radius * math.sin(phi + theta)
     return [0, y1, z1]
+
+
+def calculate_new_point(direction, previous_point, curvature_value, distance_between_points):
+    # rotation_matrix = np.random.randn(3, 3)
+    # rotation_matrix = np.linalg.qr(rotation_matrix)[0]
+    # rotation_matrix = np.eye(3) + curvature_value * rotation_matrix
+    angle = curvature_value * distance_between_points
+    rotation_matrix = np.array([
+        [np.cos(angle), -np.sin(angle), 0],
+        [np.sin(angle), np.cos(angle), 0],
+        [0, 0, 1]
+    ])
+    direction = np.dot(rotation_matrix, direction)
+    direction = math_utils.normalize(direction)
+    return previous_point + direction * distance_between_points, direction
 
 
 def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, num_files, direction_with_angles, lengths):
@@ -56,14 +71,22 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
     kde = gaussian_kde(np.array(lengths))
     new_lengths = kde.resample(num_files)
     for i in range(num_files):
-        skeleton_lengths[i] = new_lengths[i]
+        skeleton_lengths[i] = new_lengths[0][i]
+        # skeleton_lengths[i] = np.array([150.0])
+    # direction = np.array([0.0, 0.0, 1.0])
     for c in curvature:
         data = curvature[c]
-        kde = gaussian_kde(data)
-        new_curvatures = kde.resample(num_files)
-        for i, sample in enumerate(new_curvatures):
-            new_curvature = sample[0]
-            total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, (skeleton_lengths[i] / len(curvature))[0])], axis=0)
+        if len(data) == 1:
+            new_curvatures = [[data[0]]]
+        else:
+            kde = gaussian_kde(data)
+            new_curvatures = kde.resample(num_files)
+        for i, sample in enumerate(new_curvatures[0]):
+            new_curvature = sample
+            total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
+            # new_skeleton_point, direction = calculate_new_point(direction, total_skeleton_points[i][-1], new_curvature, (skeleton_lengths[i] / len(curvature))[0])
+            # total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
+    utils.plot_3d(total_skeleton_points[0])
     # generate points on skeleton
     print('generating skeleton points')
     for point, distances_around in skeleton_distances.items():
@@ -77,6 +100,14 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
                 new_distance = sample[0]
                 # calculate new boundary point in 3D space
                 direction = math_utils.rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
+                # vector_base = total_skeleton_points[i][point] - total_skeleton_points[i][point - 1]
+                # translation = vector_base - np.array([0, 0, 1])
+                # direction = math_utils.normalize(
+                #     math_utils.rotate_vector(
+                #             math_utils.normalize(np.array([1, 0, 0]) + translation), angle, math_utils.normalize(vector_base)
+                #     )
+                # )
+                # direction = math_utils.rotate_vector(vector_base, angle, vector_base + translation)
                 new_point = new_distance * np.array(direction) + total_skeleton_points[i][point]
                 skeleton_points_dict[i][point][angle % 360] = new_point
     # start
@@ -376,20 +407,23 @@ def generate_mesh(skeleton_points, start_points, end_points):
 def create_parser():
     parser = argparse.ArgumentParser(description='Generate new mitochondria shape')
     parser.add_argument('-f', '--files', help='number of files to be generated')
-    parser.add_argument('-c', '--curvature', help='curvature of the generated shapes')
+    parser.add_argument('-c', '--curvature', help='curvature of the generated shapes', nargs='*')
     parser.add_argument('-l', '--length', help='length of the generated shapes')
     return parser
 
 
 if __name__ == '__main__':
     num_of_files = 1
-    curvature, start, end, skeleton, lengths, direction_with_angles = utils.read_measurements_from_file('measurements.yaml')
+    curvature, start, end, skeleton, lengths, direction_with_angles = utils.read_measurements_from_file('measurements.pkl')
     parser = create_parser()
     args = parser.parse_args()
-    # if args.files:
-    #     num_of_files = int(args.files)
-    # if args.curvature:
-    #     curvature = [len(curvature) * [float(args.curvature)]]
-    # if args.length:
-    #     lengths = [float(args.length)]
+    if args.files:
+        num_of_files = int(args.files)
+    if args.curvature:
+        if len(curvature.keys()) != len(args.curvature):
+            raise Exception('number of curvature values must match the number of characteristic points')
+        for i, values in curvature.items():
+            curvature[i] = [float(args.curvature[i])]
+    if args.length:
+        lengths = [float(args.length)]
     sample_new_points(skeleton, start, end, curvature, num_of_files, direction_with_angles, lengths)
