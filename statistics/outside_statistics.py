@@ -74,7 +74,10 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         skeleton_lengths[i] = new_lengths[0][i]
         # skeleton_lengths[i] = np.array([150.0])
     # direction = np.array([0.0, 0.0, 1.0])
-    for c in curvature:
+    T = np.array([0, 0, 1])
+    B = np.array([0, 1, 0])
+    N = np.array([1, 0, 0])
+    for index, c in enumerate(curvature):
         data = curvature[c]
         if len(data) == 1:
             new_curvatures = [[data[0]]]
@@ -83,7 +86,20 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             new_curvatures = kde.resample(num_files)
         for i, sample in enumerate(new_curvatures[0]):
             new_curvature = sample
-            total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
+            torsion = 0
+            if index == 12:
+                torsion = 1.57
+            #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
+            solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)
+            solution = solution[1]
+            total_skeleton_points[i] = np.append(total_skeleton_points[i], [
+                # calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))
+                [solution[0], solution[1], solution[2]]
+            ], axis=0)
+            # update T. N and B
+            T = [solution[3], solution[4], solution[5]]
+            N = [solution[6], solution[7], solution[8]]
+            B = [solution[9], solution[10], solution[11]]
             # new_skeleton_point, direction = calculate_new_point(direction, total_skeleton_points[i][-1], new_curvature, (skeleton_lengths[i] / len(curvature))[0])
             # total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
     utils.plot_3d(total_skeleton_points[0])

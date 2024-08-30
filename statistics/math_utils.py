@@ -3,6 +3,7 @@ import math
 
 import numpy as np
 from scipy.special import binom
+from scipy.integrate import odeint
 
 
 def magnitude(point):
@@ -83,3 +84,44 @@ def random_cosine(u, v, m, skeleton_angle_increment=1):
     coordinate_angle_dict = {(x_coord, y_coord, z_coord): (t, p) for x_coord, y_coord, z_coord, t, p in zip(x, y, z, theta, phi)}
 
     return np.array(list(zip(x, y, z))), coordinate_angle_dict
+
+
+def frenet_serre(matrix, t, curvature, torsion):
+    if torsion != 0:
+        print()
+    gamma_prime1 = matrix[3]
+    gamma_prime2 = matrix[4]
+    gamma_prime3 = matrix[5]
+
+    t_prime1 = curvature * matrix[6]
+    t_prime2 = curvature * matrix[7]
+    t_prime3 = curvature * matrix[8]
+
+    n_prime1 = -curvature * matrix[3] + torsion * matrix[9]
+    n_prime2 = -curvature * matrix[4] + torsion * matrix[10]
+    n_prime3 = -curvature * matrix[5] + torsion * matrix[11]
+
+    b_prime1 = -torsion * matrix[6]
+    b_prime2 = -torsion * matrix[7]
+    b_prime3 = -torsion * matrix[8]
+
+    return [
+        gamma_prime1, gamma_prime2, gamma_prime3,
+        t_prime1, t_prime2, t_prime3,
+        n_prime1, n_prime2, n_prime3,
+        b_prime1, b_prime2, b_prime3
+    ]
+
+
+def calculate_next_skeleton_point(last_skeleton_point, T, N, B, curvature, torsion, distance_to_next_point):
+    matrix_to_solve = [
+        last_skeleton_point[0], last_skeleton_point[1], last_skeleton_point[2],
+        T[0], T[1], T[2],
+        N[0], N[1], N[2],
+        B[0], B[1], B[2]
+    ]
+    t = np.array([0, distance_to_next_point])
+    result = odeint(frenet_serre, matrix_to_solve, t, args=(curvature, torsion))
+    return result
+
+
