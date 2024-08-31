@@ -9,14 +9,17 @@ import utils
 
 
 def sample_direction_vectors(num_of_samples, skeleton_angle_increment=1):
-    np.random.seed(10)
+    # zgleda OK!!
+    # np.random.seed(10)
     # source: http://blog.thomaspoulet.fr/uniform-sampling-on-unit-hemisphere/
     u_samples = np.random.uniform(0, 1, num_of_samples)
     v_samples = np.random.uniform(0, 1, num_of_samples)
     u_samples = np.append(u_samples, [0], axis=0)
     v_samples = np.append(v_samples, [0], axis=0)
     # sample another
-    return math_utils.random_cosine(u_samples, v_samples, 1, skeleton_angle_increment)
+    result = math_utils.random_cosine(u_samples, v_samples, 1, skeleton_angle_increment)
+    # utils.plot_3d(result[0])
+    return result
 
 
 def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
@@ -69,7 +72,7 @@ def iterate_ray(origin, direction_vector, shape):
 
 
 def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
-    t_list = np.linspace(0, 1, number_of_points).tolist()
+    t_list = np.linspace(0, 1, number_of_points + 1).tolist()
     curvature = []
     for t in t_list:
         first_derivative = np.array(bezier.calculate_bezier_derivative(n, arc, t))
@@ -86,9 +89,11 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
     return curvature
 
 
-def perform_measurements(n, points, num_of_points, direction_vectors, object_points, angle_increment=1):
+def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, object_points, angle_increment=1):
     skleton_distances = {}
-    _, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, points, num_of_points)
+    _, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
+    # print('length=', length)
+    # utils.plot_bezier_curve(arc)
     if arc is not None:
         for i in range(1, len(arc) - 2):
             previous_point = arc[i - 1]
@@ -109,7 +114,7 @@ def perform_measurements(n, points, num_of_points, direction_vectors, object_poi
 
 if __name__ == '__main__':
     skeletons_folder = '../skeletons/'
-    num_of_points, n, num_of_samples, num_files = 15, 5, 1000, 1
+    num_of_skeleton_points, n, num_of_samples, num_files = 15, 5, 1000, 1
     angle_increment = 3
     if 360 % angle_increment != 0:
         raise Exception('angle increment has to be a multiple of 360.')
@@ -117,18 +122,18 @@ if __name__ == '__main__':
     direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
-        points = utils.read_file_collect_points(filename, skeletons_folder)
+        skeleton_points = utils.read_file_collect_points(filename, skeletons_folder)
         object_points = utils.read_nii_file('../extracted_data/', filename.replace('.csv', '.nii'))
-        if points is None:
+        if skeleton_points is None:
             print('no points for file', filename)
             continue
-        distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(n, points, num_of_points, direction_vectors, object_points, angle_increment)
+        distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
         if distances is None:
             new_n = n
             while distances is None:
                 new_n -= 1
                 print('try to form new distances with order', new_n)
-                distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(new_n, points, num_of_points, direction_vectors, object_points, angle_increment)
+                distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(new_n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end

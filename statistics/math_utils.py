@@ -44,11 +44,16 @@ def rotate_vector(vector, angle_degrees, base_vector):
 
 # source: https://math.stackexchange.com/a/476311
 def get_rotation_matrix(origin, destination):
+
     v = np.cross(origin, destination)
+    if np.any(np.isnan(v)):
+        print()
     s = np.linalg.norm(v)
     c = np.dot(origin, destination)
     vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     r = np.eye(3) + vx + np.dot(vx, vx) * (1 - c) / (s ** 2)
+    if r is None:
+        print()
     return r
 
 
@@ -87,8 +92,8 @@ def random_cosine(u, v, m, skeleton_angle_increment=1):
 
 
 def frenet_serre(matrix, t, curvature, torsion):
-    if torsion != 0:
-        print()
+    # if torsion != 0:
+    #     print()
     gamma_prime1 = matrix[3]
     gamma_prime2 = matrix[4]
     gamma_prime3 = matrix[5]
