@@ -76,62 +76,77 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
     # direction = np.array([0.0, 0.0, 1.0])
     # T = np.array([0, 1, 0])
     T = np.array([0, 0, 1])
-    # B = np.array([0, 0, 1])
-    B = np.array([1, 0, 0])
-    # N = np.array([1, 0, 0])
-    N = np.array([0, 1, 0])
+    B = np.array([0, 1, 0])
+    N = np.array([1, 0, 0])
+    # for index, c in enumerate(curvature):
+    #     data = curvature[c]
+    #     if len(data) == 1:
+    #         new_curvatures = [[data[0]]]
+    #     else:
+    #         kde = gaussian_kde(data)
+    #         new_curvatures = kde.resample(num_files)
+    #     for i, sample in enumerate(new_curvatures[0]):
+    #         new_curvature = sample
+    #         torsion = 0
+    #         # if index == 12:
+    #         #     torsion = 1.57
+    #         #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
+    #         solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)
+    #         solution = solution[1]
+    #         total_skeleton_points[i] = np.append(total_skeleton_points[i], [
+    #             # calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))
+    #             [solution[0], solution[1], solution[2]]
+    #         ], axis=0)
+    #         # update T. N and B
+    #         T = [solution[3], solution[4], solution[5]]
+    #         N = [solution[6], solution[7], solution[8]]
+    #         B = [solution[9], solution[10], solution[11]]
+    #         # new_skeleton_point, direction = calculate_new_point(direction, total_skeleton_points[i][-1], new_curvature, (skeleton_lengths[i] / len(curvature))[0])
+    #         # total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
+    # utils.plot_3d(total_skeleton_points[0])
+    # generate points on skeleton
+    print('generating skeleton points')
+    # for point, distances_around in skeleton_distances.items():
+    #     for angle, distances in distances_around.items():
+    #         distances = np.array(distances)
+    #         kde = gaussian_kde(distances)
+    #         new_distances = kde.resample(num_files)
+    #         for i, sample in enumerate(new_distances):
+    #             if point not in skeleton_points_dict[i]:
+    #                 skeleton_points_dict[i][point] = {}
+    #             new_distance = sample[0]
+    #             # calculate new boundary point in 3D space
+    #             direction = math_utils.rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
+    #             # vector_base = total_skeleton_points[i][point] - total_skeleton_points[i][point - 1]
+    #             # translation = vector_base - np.array([0, 0, 1])
+    #             # direction = math_utils.normalize(
+    #             #     math_utils.rotate_vector(
+    #             #             math_utils.normalize(np.array([1, 0, 0]) + translation), angle, math_utils.normalize(vector_base)
+    #             #     )
+    #             # )
+    #             # direction = math_utils.rotate_vector(vector_base, angle, vector_base + translation)
+    #             new_point = new_distance * np.array(direction) + total_skeleton_points[i][point]
+    #             skeleton_points_dict[i][point][angle % 360] = new_point
+    # todo: zdruzi iskanje skeleton tock z generiranjem tock okoli
     for index, c in enumerate(curvature):
-        data = curvature[c]
-        if len(data) == 1:
-            new_curvatures = [[data[0]]]
+        if len(c) == 1:
+            new_curvatures = [[c[0]]]
         else:
-            kde = gaussian_kde(data)
+            kde = gaussian_kde(c)
             new_curvatures = kde.resample(num_files)
         for i, sample in enumerate(new_curvatures[0]):
             new_curvature = sample
             torsion = 0
-            # if index == 1:
-            #     torsion = 1.57
+            if index == 12:
+                torsion = 1.57
             #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
             solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)
-            solution = solution[1]
-            total_skeleton_points[i] = np.append(total_skeleton_points[i], [
-                # calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))
-                [solution[0], solution[1], solution[2]]
-            ], axis=0)
             # update T. N and B
             T = [solution[3], solution[4], solution[5]]
             N = [solution[6], solution[7], solution[8]]
             B = [solution[9], solution[10], solution[11]]
-            # new_skeleton_point, direction = calculate_new_point(direction, total_skeleton_points[i][-1], new_curvature, (skeleton_lengths[i] / len(curvature))[0])
-            # total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
-    utils.plot_3d(total_skeleton_points[0])
-    utils.save_as_nii_2(total_skeleton_points[0])
-    # generate points on skeleton
-    print('generating skeleton points')
-    for point, distances_around in skeleton_distances.items():
-        for angle, distances in distances_around.items():
-            distances = np.array(distances)
-            kde = gaussian_kde(distances)
-            new_distances = kde.resample(num_files)
-            for i, sample in enumerate(new_distances):
-                if point not in skeleton_points_dict[i]:
-                    skeleton_points_dict[i][point] = {}
-                new_distance = sample[0]
-                # calculate new boundary point in 3D space
+            new_skeleton_point = [solution[0], solution[1], solution[2]]
 
-                # direction = math_utils.rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
-                vector_base = total_skeleton_points[i][point] - total_skeleton_points[i][point - 1]
-                direction = math_utils.rotate_vector(np.array([1, 0, 0]), angle, vector_base)
-                # translation = vector_base - np.array([0, 0, 1])
-                # direction = math_utils.normalize(
-                #     math_utils.rotate_vector(
-                #             math_utils.normalize(np.array([1, 0, 0]) + translation), angle, math_utils.normalize(vector_base)
-                #     )
-                # )
-                # direction = math_utils.rotate_vector(vector_base, angle, vector_base + translation)
-                new_point = new_distance * np.array(direction) + total_skeleton_points[i][point]
-                skeleton_points_dict[i][point][angle % 360] = new_point
     # start
     print('generating start points')
     for direction, distances in start_distances.items():
@@ -157,7 +172,6 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         new_distances = kde.resample(num_files)
         theta, phi = direction_with_angles[direction]
         for i, sample in enumerate(new_distances):
-            print('handling direction', direction)
             new_distance = sample[0]
             # calculate new boundary point in 3D space
             # normal_start = math_utils.normalize(total_skeleton_points[i][0] - total_skeleton_points[i][1])
