@@ -129,24 +129,39 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
     #             skeleton_points_dict[i][point][angle % 360] = new_point
     # todo: zdruzi iskanje skeleton tock z generiranjem tock okoli
     for index, c in enumerate(curvature):
-        if len(c) == 1:
-            new_curvatures = [[c[0]]]
+        if len(curvature[c]) == 1:
+            new_curvatures = [[curvature[c][0]]]
         else:
             kde = gaussian_kde(c)
             new_curvatures = kde.resample(num_files)
         for i, sample in enumerate(new_curvatures[0]):
             new_curvature = sample
             torsion = 0
-            if index == 12:
-                torsion = 1.57
+            if index == 7:
+                print('a')
+                torsion = 3.57
             #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
-            solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)
+            solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)[1]
             # update T. N and B
             T = [solution[3], solution[4], solution[5]]
             N = [solution[6], solution[7], solution[8]]
             B = [solution[9], solution[10], solution[11]]
             new_skeleton_point = [solution[0], solution[1], solution[2]]
-
+            total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
+            if index not in skeleton_distances:
+                continue
+            for angle, distances in skeleton_distances[index].items():
+                distances = np.array(distances)
+                kde = gaussian_kde(distances)
+                new_distances = kde.resample(num_files)
+                for i1, sample1 in enumerate(new_distances):
+                    if index not in skeleton_points_dict[i1]:
+                        skeleton_points_dict[i1][index] = {}
+                    new_distance = sample1[0]
+                    direction = math_utils.rotate_vector(np.array(N), angle, np.array(T))
+                    new_point = new_distance * np.array(direction) + new_skeleton_point
+                    skeleton_points_dict[i1][index][angle % 360] = new_point
+    utils.plot_3d(total_skeleton_points[0])
     # start
     print('generating start points')
     for direction, distances in start_distances.items():
@@ -249,9 +264,9 @@ def generate_mesh(skeleton_points, start_points, end_points):
                 same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
                 previous_point_previous_ring = grouped_data_start[group_index - 1][0][0]
                 previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
-                triangle_4 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
+                triangle_4 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                 faces.append(triangle_4)
-                triangle_5 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                triangle_5 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                 faces.append(triangle_5)
             index += 1
     last_connected_index = 0
