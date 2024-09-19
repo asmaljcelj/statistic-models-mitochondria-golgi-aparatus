@@ -42,6 +42,10 @@ def rotate_vector(vector, angle_degrees, base_vector):
     return term1 + term2 + term3
 
 
+def rotate_vector2(v, R):
+    return np.dot(R, v)
+
+
 # source: https://math.stackexchange.com/a/476311
 def get_rotation_matrix(origin, destination):
 
@@ -55,6 +59,61 @@ def get_rotation_matrix(origin, destination):
     if r is None:
         print()
     return r
+
+
+# Step 1: Rotate the normal n1 to align with n2
+def align_normals(v, n1, n2):
+    if np.allclose(n1, n2):
+        return v, None  # No rotation needed if normals are already aligned
+
+    axis = np.cross(n1, n2)
+    angle = angle_between(n1, n2)
+    R = rotation_matrix_from_axis_angle(axis, angle)
+    return rotate_vector2(v, R), rotate_vector2(n1, R)
+
+
+def rotation_matrix_from_axis_angle(axis, angle):
+    axis = normalize(axis)
+    cos_theta = np.cos(angle)
+    sin_theta = np.sin(angle)
+    cross_prod_matrix = np.array([[0, -axis[2], axis[1]],
+                                  [axis[2], 0, -axis[0]],
+                                  [-axis[1], axis[0], 0]])
+    identity_matrix = np.identity(3)
+    return cos_theta * identity_matrix + sin_theta * cross_prod_matrix + (1 - cos_theta) * np.outer(axis, axis)
+
+
+# Step 2: Rotate around the aligned normal to match o1 with o2
+def align_orthogonal(v, o1, o2, normal):
+    # Project o1 and o2 onto the plane perpendicular to the normal
+    o1_proj = o1 - np.dot(o1, normal) * normal
+    o2_proj = o2 - np.dot(o2, normal) * normal
+
+    if np.linalg.norm(o1_proj) == 0 or np.linalg.norm(o2_proj) == 0:
+        return v  # If projections are zero, no further rotation is needed
+
+    o1_proj = normalize(o1_proj)
+    o2_proj = normalize(o2_proj)
+
+    axis = normal  # Rotation around the normal
+    angle = angle_between(o1_proj, o2_proj)
+    R = rotation_matrix_from_axis_angle(axis, angle)
+    return rotate_vector2(v, R)
+
+
+# Function to rotate a vector using a rotation matrix
+def rotate_vector1(original_vector, original_normal, new_normal, original_orthogonal, new_orthogonal):
+    v_aligned, n1_aligned = align_normals(original_vector, original_normal, new_normal)
+    return align_orthogonal(v_aligned, original_orthogonal, new_orthogonal, new_normal)
+
+# Function to compute the angle between two vectors
+def angle_between(v1, v2):
+    v1 = normalize(v1)
+    v2 = normalize(v2)
+    return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
+
+def get_rotation_arbitrary_matrix():
+    pass
 
 
 def get_points_between_2_points(point1, point2, num_of_points):
@@ -130,3 +189,26 @@ def calculate_next_skeleton_point(last_skeleton_point, T, N, B, curvature, torsi
     return result
 
 
+def new_point(theta, phi, base_x, base_y, base_z):
+    base_coords = spherical_to_cartesian(1, theta, phi)
+    new_coords = transform_to_new_axes(base_coords, base_x, base_y, base_z)
+    return transform_to_base(new_coords, base_x, base_y, base_z)
+
+
+def spherical_to_cartesian(r, theta, phi):
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return np.array([x, y, z])
+
+
+def transform_to_new_axes(cartesian_coords, ux, uy, uz):
+    transformation_matrix = np.array([ux, uy, uz]).T
+    return transformation_matrix.dot(cartesian_coords)
+
+
+def transform_to_base(cartesian_coords_in_new_axes, ux, uy, uz):
+    transformation_matrix = np.array([ux, uy, uz]).T
+    # Compute the inverse of the transformation matrix
+    inverse_matrix = np.linalg.inv(transformation_matrix)
+    return inverse_matrix.dot(cartesian_coords_in_new_axes)

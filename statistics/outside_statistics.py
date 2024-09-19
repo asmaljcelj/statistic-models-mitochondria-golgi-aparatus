@@ -78,6 +78,9 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
     T = np.array([0, 0, 1])
     B = np.array([0, 1, 0])
     N = np.array([1, 0, 0])
+    first_N = N
+    first_T = T
+    first_B = B
     # for index, c in enumerate(curvature):
     #     data = curvature[c]
     #     if len(data) == 1:
@@ -139,13 +142,17 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             torsion = 0
             if index == 7:
                 print('a')
-                torsion = 3.57
+                # torsion = 3.57
             #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
             solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)[1]
             # update T. N and B
             T = [solution[3], solution[4], solution[5]]
             N = [solution[6], solution[7], solution[8]]
             B = [solution[9], solution[10], solution[11]]
+            if index == 0:
+                first_N = N
+                first_B = B
+                first_T = T
             new_skeleton_point = [solution[0], solution[1], solution[2]]
             total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
             if index not in skeleton_distances:
@@ -161,7 +168,7 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
                     direction = math_utils.rotate_vector(np.array(N), angle, np.array(T))
                     new_point = new_distance * np.array(direction) + new_skeleton_point
                     skeleton_points_dict[i1][index][angle % 360] = new_point
-    utils.plot_3d(total_skeleton_points[0])
+    # utils.plot_3d(total_skeleton_points[0])
     # start
     print('generating start points')
     for direction, distances in start_distances.items():
@@ -173,8 +180,10 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             new_distance = sample[0]
             # calculate new boundary point in 3D space
             normal_start = math_utils.normalize(total_skeleton_points[i][-1] - total_skeleton_points[i][-2])
-            R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
-            new_direction = np.dot(R, direction)
+            # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
+            # new_direction = np.dot(R, direction)
+            # new_direction = math_utils.rotate_vector1(direction, np.array([0, 0, 1]), normal_start, np.array([1, 0, 0]), N)
+            new_direction = math_utils.new_point(theta, phi, N, B, T)
             new_point = new_distance * new_direction + total_skeleton_points[i][-1]
             new_point_key = (new_point[0], new_point[1], new_point[2])
             start_points_dict[i][new_point_key] = (theta, phi)
@@ -193,7 +202,11 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
             # new_direction = np.dot(R, direction)
             # new_point = new_distance * new_direction
-            new_point = np.array([new_distance]) * direction * np.array([-1])
+            normal_start = math_utils.normalize(total_skeleton_points[i][0] - total_skeleton_points[i][1])
+            # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
+            # new_direction = np.dot(R, direction)
+            new_direction = math_utils.new_point(theta, phi, first_N, first_B, first_T)
+            new_point = np.array([new_distance]) * new_direction
             new_point_key = (new_point[0], new_point[1], new_point[2])
             end_points_dict[i][new_point_key] = (theta, phi)
     for i in range(num_files):
@@ -271,12 +284,15 @@ def generate_mesh(skeleton_points, start_points, end_points):
             index += 1
     last_connected_index = 0
     for kroznica_index, p in enumerate(kroznica_start_points):
+        i1 = int(360 / angle_increment) - kroznica_index
+        i1 = kroznica_index
         p = p[0]
         vertices.append(p)
         key = utils.dict_key_from_point(p)
         point_vertice_indexes[key] = index
-        if kroznica_index > 0:
-            skeleton_index = int(kroznica_index * len(grouped_data_start[0]) / len(kroznica_start_points))
+        # if i1 < int(360 / angle_increment):
+        if i1 > 0:
+            skeleton_index = int(i1 * len(grouped_data_start[0]) / len(kroznica_start_points))
             triangle = [index, point_vertice_indexes[grouped_data_start[0][skeleton_index][0]], index - 1]
             faces.append(triangle)
             if skeleton_index != last_connected_index:
@@ -285,7 +301,7 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     triangle_1 = [index - 1, point_vertice_indexes[grouped_data_start[0][i][0]], point_vertice_indexes[grouped_data_start[0][i - 1][0]]]
                     faces.append(triangle_1)
                 last_connected_index = skeleton_index
-            if kroznica_index == len(kroznica_start_points) - 1:
+            if i1 == len(kroznica_start_points) - 1:
                 triangle_1 = [index, point_vertice_indexes[kroznica_start_points[0][0]], point_vertice_indexes[grouped_data_start[0][skeleton_index][0]]]
                 faces.append(triangle_1)
                 triangle_2 = [point_vertice_indexes[kroznica_start_points[0][0]], point_vertice_indexes[grouped_data_start[0][0][0]], point_vertice_indexes[grouped_data_start[0][skeleton_index][0]]]
@@ -347,12 +363,13 @@ def generate_mesh(skeleton_points, start_points, end_points):
             index += 1
     last_connected_index = 0
     for kroznica_index, p in enumerate(kroznica_points):
+
         p = p[0]
         vertices.append(p)
         key = utils.dict_key_from_point(p)
         point_vertice_indexes[key] = index
-        if kroznica_index > 0:
-            skeleton_index = int(kroznica_index * len(grouped_data_end[0]) / len(kroznica_points))
+        if i1 > 0:
+            skeleton_index = int(i1 * len(grouped_data_end[0]) / len(kroznica_points))
             triangle = [index, point_vertice_indexes[grouped_data_end[0][skeleton_index][0]], index - 1]
             faces.append(triangle)
             if skeleton_index != last_connected_index:
@@ -361,7 +378,7 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     triangle_1 = [index - 1, point_vertice_indexes[grouped_data_end[0][i][0]], point_vertice_indexes[grouped_data_end[0][i - 1][0]]]
                     faces.append(triangle_1)
                 last_connected_index = skeleton_index
-            if kroznica_index == len(kroznica_points) - 1:
+            if i1 == len(kroznica_points) - 1:
                 triangle_1 = [index, point_vertice_indexes[kroznica_points[0][0]], point_vertice_indexes[grouped_data_end[0][skeleton_index][0]]]
                 faces.append(triangle_1)
                 triangle_2 = [point_vertice_indexes[kroznica_points[0][0]], point_vertice_indexes[grouped_data_end[0][0][0]], point_vertice_indexes[grouped_data_end[0][skeleton_index][0]]]
@@ -387,9 +404,9 @@ def generate_mesh(skeleton_points, start_points, end_points):
                 previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
                 same_point_previous_ring = skeleton_points[ring - 1][angle]
                 same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
-                triangle_1 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
+                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                 faces.append(triangle_1)
-                triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                 faces.append(triangle_2)
                 if i == len(angles) - 1:
                     # zadnjo vozlisce povezi s prvim
@@ -399,9 +416,9 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
                     previous_point_previous_ring = skeleton_points[ring - 1][0]
                     previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
-                    triangle_4 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                    triangle_4 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
                     faces.append(triangle_4)
-                    triangle_5 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
+                    triangle_5 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                     faces.append(triangle_5)
             elif ring == 1:
                 # first ring connects to end points
@@ -422,25 +439,26 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
                     same_point_previous_ring = kroznica_points[i][0]
                     same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
-                    triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                    triangle_1 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
                     faces.append(triangle_1)
-                    triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
+                    triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                     faces.append(triangle_2)
             if ring == len(skeleton_points):
                 # todo: komentiraj, zakaj tu tako
                 num_of_points = int(360 / angle_increment)
                 kroznica_index = num_of_points - i
+                kroznica_index = i
                 # kroznica_angle = 360 - angle
                 # last ring connects to start points
                 previous_point_same_ring = points_at_angle[angle - angle_increment]
                 previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
-                previous_point_previous_ring = kroznica_start_points[(kroznica_index + 1) % num_of_points][0]
+                previous_point_previous_ring = kroznica_start_points[kroznica_index - 1][0]
                 previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
                 same_point_previous_ring = kroznica_start_points[kroznica_index][0]
                 same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
-                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                triangle_1 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
                 faces.append(triangle_1)
-                triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
+                triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                 faces.append(triangle_2)
                 if i == len(angles) - 1:
                     previous_point_same_ring = points_at_angle[0]
@@ -449,9 +467,9 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
                     same_point_previous_ring = kroznica_start_points[kroznica_index][0]
                     same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
-                    triangle_1 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
+                    triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                     faces.append(triangle_1)
-                    triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                    triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                     faces.append(triangle_2)
             index += 1
     return vertices, faces
