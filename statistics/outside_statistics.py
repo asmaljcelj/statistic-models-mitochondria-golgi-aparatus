@@ -51,6 +51,8 @@ def calculate_new_point(direction, previous_point, curvature_value, distance_bet
 
 
 def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, num_files, direction_with_angles, lengths):
+    # todo: seed as parameter
+    np.random.seed(2248)
     # calculate skeleton points based on curvature
     print('finding new skeleton points')
     new_points, total_skeleton_points, edge_points = [], [], []
@@ -159,56 +161,71 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
                 continue
             for angle, distances in skeleton_distances[index].items():
                 distances = np.array(distances)
-                kde = gaussian_kde(distances)
-                new_distances = kde.resample(num_files)
-                for i1, sample1 in enumerate(new_distances):
+                # math_utils.plot_histogram(distances)
+                # kde = gaussian_kde(distances)
+                # new_distances = kde.resample(num_files)
+                # todo: support for multiple files
+                average, standard_deviation = math_utils.calculate_average_and_standard_deviation(distances)
+                # todo: parameter for sigma!
+                samples = np.random.normal(0.5, 0.2, num_files)
+                for i1, sample1 in enumerate(samples):
                     if index not in skeleton_points_dict[i1]:
                         skeleton_points_dict[i1][index] = {}
-                    new_distance = sample1[0]
+                    whole_std_interval = 2 * np.array(standard_deviation)
+                    new_distance = (average - standard_deviation) + sample1 * whole_std_interval
                     direction = math_utils.rotate_vector(np.array(N), angle, np.array(T))
                     new_point = new_distance * np.array(direction) + new_skeleton_point
                     skeleton_points_dict[i1][index][angle % 360] = new_point
     # utils.plot_3d(total_skeleton_points[0])
-    # start
-    print('generating start points')
+    print('generating end points')
     for direction, distances in start_distances.items():
         distances = np.array(distances)
-        kde = gaussian_kde(distances)
-        new_distances = kde.resample(num_files)
+        # kde = gaussian_kde(distances)
+        # new_distances = kde.resample(num_files)
         theta, phi = direction_with_angles[direction]
-        for i, sample in enumerate(new_distances):
-            new_distance = sample[0]
+        # todo: support for multiple files
+        average, standard_deviation = math_utils.calculate_average_and_standard_deviation(distances)
+        # todo: parameter for sigma!
+        samples = np.random.normal(0.5, 0.2, num_files)
+        for i, sample in enumerate(samples):
+            # new_distance = sample[0]
+            whole_std_interval = 2 * np.array(standard_deviation)
+            new_distance = (average - standard_deviation) + sample * whole_std_interval
             # calculate new boundary point in 3D space
             normal_start = math_utils.normalize(total_skeleton_points[i][-1] - total_skeleton_points[i][-2])
-            # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
-            # new_direction = np.dot(R, direction)
+            R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
+            new_direction = np.dot(R, direction)
             # new_direction = math_utils.rotate_vector1(direction, np.array([0, 0, 1]), normal_start, np.array([1, 0, 0]), N)
-            new_direction = math_utils.new_point(theta, phi, N, B, T)
+            # new_direction = math_utils.new_point(theta, phi, N, B, T)
             new_point = new_distance * new_direction + total_skeleton_points[i][-1]
             new_point_key = (new_point[0], new_point[1], new_point[2])
-            start_points_dict[i][new_point_key] = (theta, phi)
-    # # end
-    print('generating end points')
+            end_points_dict[i][new_point_key] = (theta, phi)
+    print('generating starts points')
     for direction, distances in end_distances.items():
         distances.sort()
         distances = np.array(distances)
-        kde = gaussian_kde(distances)
-        new_distances = kde.resample(num_files)
+        # kde = gaussian_kde(distances)
+        # new_distances = kde.resample(num_files)
         theta, phi = direction_with_angles[direction]
-        for i, sample in enumerate(new_distances):
-            new_distance = sample[0]
+        # todo: support for multiple files
+        average, standard_deviation = math_utils.calculate_average_and_standard_deviation(distances)
+        # todo: parameter for sigma!
+        samples = np.random.normal(0.5, 0.2, num_files)
+        for i, sample in enumerate(samples):
+            # new_distance = sample[0]
+            whole_std_interval = 2 * np.array(standard_deviation)
+            new_distance = (average - standard_deviation) + sample * whole_std_interval
             # calculate new boundary point in 3D space
-            # normal_start = math_utils.normalize(total_skeleton_points[i][0] - total_skeleton_points[i][1])
-            # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
+            normal_start = math_utils.normalize(total_skeleton_points[i][0] - total_skeleton_points[i][1])
+            R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
             # new_direction = np.dot(R, direction)
             # new_point = new_distance * new_direction
-            normal_start = math_utils.normalize(total_skeleton_points[i][0] - total_skeleton_points[i][1])
             # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
-            # new_direction = np.dot(R, direction)
-            new_direction = math_utils.new_point(theta, phi, first_N, first_B, first_T)
-            new_point = np.array([new_distance]) * new_direction
+            new_direction = np.dot(R, direction)
+            # new_direction = math_utils.new_point(theta, phi, first_N, first_B, first_T)
+            new_point = new_distance * new_direction
             new_point_key = (new_point[0], new_point[1], new_point[2])
-            end_points_dict[i][new_point_key] = (theta, phi)
+            start_points_dict[i][new_point_key] = (theta, phi)
     for i in range(num_files):
         vertices, faces = generate_mesh(skeleton_points_dict[i], start_points_dict[i], end_points_dict[i])
         utils.generate_obj_file(vertices, faces, f'test_{i}.obj')
@@ -284,7 +301,7 @@ def generate_mesh(skeleton_points, start_points, end_points):
             index += 1
     last_connected_index = 0
     for kroznica_index, p in enumerate(kroznica_start_points):
-        i1 = int(360 / angle_increment) - kroznica_index
+        # i1 = int(360 / angle_increment) - kroznica_index
         i1 = kroznica_index
         p = p[0]
         vertices.append(p)
@@ -363,7 +380,7 @@ def generate_mesh(skeleton_points, start_points, end_points):
             index += 1
     last_connected_index = 0
     for kroznica_index, p in enumerate(kroznica_points):
-
+        i1 = kroznica_index
         p = p[0]
         vertices.append(p)
         key = utils.dict_key_from_point(p)
@@ -421,6 +438,39 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     triangle_5 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                     faces.append(triangle_5)
             elif ring == 1:
+                # todo: komentiraj, zakaj tu tako - TU ŠE NEKI NE DELA
+                num_of_points = int(360 / angle_increment)
+                # kroznica_index = int((num_of_points - i + num_of_points / 2) % num_of_points)
+                if 0 <= i <= num_of_points / 2:
+                    kroznica_index = num_of_points / 2 - i
+                elif num_of_points / 2 < i <= num_of_points:
+                    kroznica_index = num_of_points + num_of_points / 2 - i
+                kroznica_index = int(kroznica_index)
+                # kroznica_index = i
+                # kroznica_angle = 360 - angle
+                # last ring connects to start points
+                previous_point_same_ring = points_at_angle[angle - angle_increment]
+                previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
+                previous_point_previous_ring = kroznica_start_points[kroznica_index - 1][0]
+                previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
+                same_point_previous_ring = kroznica_start_points[kroznica_index][0]
+                same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
+                triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                faces.append(triangle_1)
+                triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                faces.append(triangle_2)
+                if kroznica_index == len(angles) - 1:
+                    previous_point_same_ring = points_at_angle[0]
+                    previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
+                    previous_point_previous_ring = kroznica_start_points[0][0]
+                    previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
+                    same_point_previous_ring = kroznica_start_points[kroznica_index][0]
+                    same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
+                    triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                    faces.append(triangle_1)
+                    triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
+                    faces.append(triangle_2)
+            if ring == len(skeleton_points):
                 # first ring connects to end points
                 previous_point_same_ring = points_at_angle[angle - angle_increment]
                 previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
@@ -442,34 +492,6 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     triangle_1 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
                     faces.append(triangle_1)
                     triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
-                    faces.append(triangle_2)
-            if ring == len(skeleton_points):
-                # todo: komentiraj, zakaj tu tako
-                num_of_points = int(360 / angle_increment)
-                kroznica_index = num_of_points - i
-                kroznica_index = i
-                # kroznica_angle = 360 - angle
-                # last ring connects to start points
-                previous_point_same_ring = points_at_angle[angle - angle_increment]
-                previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
-                previous_point_previous_ring = kroznica_start_points[kroznica_index - 1][0]
-                previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
-                same_point_previous_ring = kroznica_start_points[kroznica_index][0]
-                same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
-                triangle_1 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[previous_point_same_ring_key]]
-                faces.append(triangle_1)
-                triangle_2 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
-                faces.append(triangle_2)
-                if i == len(angles) - 1:
-                    previous_point_same_ring = points_at_angle[0]
-                    previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
-                    previous_point_previous_ring = kroznica_start_points[0][0]
-                    previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
-                    same_point_previous_ring = kroznica_start_points[kroznica_index][0]
-                    same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
-                    triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
-                    faces.append(triangle_1)
-                    triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                     faces.append(triangle_2)
             index += 1
     return vertices, faces
@@ -498,3 +520,4 @@ if __name__ == '__main__':
     if args.length:
         lengths = [float(args.length)]
     sample_new_points(skeleton, start, end, curvature, num_of_files, direction_with_angles, lengths)
+

@@ -4,6 +4,7 @@ import math
 import numpy as np
 from scipy.special import binom
 from scipy.integrate import odeint
+import matplotlib.pyplot as plt
 
 
 def magnitude(point):
@@ -48,16 +49,13 @@ def rotate_vector2(v, R):
 
 # source: https://math.stackexchange.com/a/476311
 def get_rotation_matrix(origin, destination):
-
     v = np.cross(origin, destination)
-    if np.any(np.isnan(v)):
-        print()
+    if not np.any(v):
+        return np.eye(3)
     s = np.linalg.norm(v)
     c = np.dot(origin, destination)
     vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     r = np.eye(3) + vx + np.dot(vx, vx) * (1 - c) / (s ** 2)
-    if r is None:
-        print()
     return r
 
 
@@ -212,3 +210,25 @@ def transform_to_base(cartesian_coords_in_new_axes, ux, uy, uz):
     # Compute the inverse of the transformation matrix
     inverse_matrix = np.linalg.inv(transformation_matrix)
     return inverse_matrix.dot(cartesian_coords_in_new_axes)
+
+
+def plot_histogram(data):
+    # Plotting a basic histogram
+    plt.hist(data, bins=15, color='skyblue', edgecolor='black')
+
+    # Adding labels and title
+    plt.xlabel('Values')
+    plt.ylabel('Frequency')
+    plt.title('Basic Histogram')
+
+    # Display the plot
+    plt.show()
+
+
+def calculate_average_and_standard_deviation(data):
+    average = np.average(data, axis=0)
+    summed = 0
+    for point in data:
+        summed += np.square(average - point)
+    standard_deviation = np.sqrt(summed / (len(data) - 1))
+    return average, standard_deviation
