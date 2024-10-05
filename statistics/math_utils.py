@@ -47,11 +47,19 @@ def rotate_vector2(v, R):
     return np.dot(R, v)
 
 
+def are_opposite_vectors(v1, v2):
+    dot = np.dot(v1, v2)
+    return np.isclose(dot, -np.linalg.norm(v1) * np.linalg.norm(v2))
+
+
 # source: https://math.stackexchange.com/a/476311
 def get_rotation_matrix(origin, destination):
     v = np.cross(origin, destination)
     if not np.any(v):
-        return np.eye(3)
+        identity = np.eye(3)
+        if are_opposite_vectors(origin, destination):
+            identity[2] *= -1
+        return identity
     s = np.linalg.norm(v)
     c = np.dot(origin, destination)
     vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
