@@ -1,249 +1,100 @@
 import argparse
-import math
 
 import numpy as np
 import trimesh
-from scipy.stats import gaussian_kde
 
 import math_utils
 import utils
 
 
-def calculate_new_skeleton_point(previous_point, curvature_value, distance_between_points):
-    radius_of_circle = abs(distance_between_points / curvature_value)
-    center_of_circle = np.copy(previous_point)
-    if curvature_value < 0:
-        center_of_circle[1] -= radius_of_circle
-        return find_new_skeleton_point(center_of_circle, previous_point, radius_of_circle, distance_between_points, 1)
-    elif curvature_value > 0:
-        center_of_circle[1] += radius_of_circle
-        return find_new_skeleton_point(center_of_circle, previous_point, radius_of_circle, distance_between_points, -1)
-    else:
-        # curvature value is 0 -> take only straight point
-        return [0, previous_point[1], previous_point[2] + distance_between_points]
+class SigmaParameters:
+    length = 0.2
+    skeleton_points = 0.2
+    start_points = 0.2
+    end_points = 0.2
+    curvature = 0.2
+    torsion = 0.2
+
+    def __init__(self, length=0.2, skeleton=0.2, start=0.2, end=0.2, curvature=0.2, torsion=0.2):
+        self.length = length
+        self.skeleton_points = skeleton
+        self.start_points = start
+        self.end_points = end
+        self.curvature = curvature
+        self.torsion = torsion
+
+    def __str__(self):
+        return 'length = {:.2f}, skeleton = {:.2f}, start = {:.2f}, end = {:.2f}, curvature = {:.2f}, torsion = {:.2f}'.format(self.length, self.skeleton_points, self.start_points, self.end_points, self.curvature, self.torsion)
 
 
-def find_new_skeleton_point(center, current_point, radius, distance_between_points, direction):
-    theta = distance_between_points / radius
-    phi = np.pi / 2 * utils.get_sign_of_number(current_point[1] - center[1])
-    z1 = center[2] + radius * math.cos(phi + theta)
-    # y1 = center[1] + radius * math.sin(phi + theta)
-    if direction == -1:
-        z1 = center[2] + radius * math.cos(phi - theta)
-        # y1 = center[1] + radius * math.sin(phi - theta)
-    y1 = center[1] + radius * math.sin(phi + theta)
-    return [0, y1, z1]
-
-
-def calculate_new_point(direction, previous_point, curvature_value, distance_between_points):
-    # rotation_matrix = np.random.randn(3, 3)
-    # rotation_matrix = np.linalg.qr(rotation_matrix)[0]
-    # rotation_matrix = np.eye(3) + curvature_value * rotation_matrix
-    angle = curvature_value * distance_between_points
-    rotation_matrix = np.array([
-        [np.cos(angle), -np.sin(angle), 0],
-        [np.sin(angle), np.cos(angle), 0],
-        [0, 0, 1]
-    ])
-    direction = np.dot(rotation_matrix, direction)
-    direction = math_utils.normalize(direction)
-    return previous_point + direction * distance_between_points, direction
-
-
-def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, num_files, direction_with_angles, lengths):
-    # todo: seed as parameter
-    np.random.seed(2248)
+def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, direction_with_angles, lengths, torsions, random_seed=2000, sigma=SigmaParameters()):
+    np.random.seed(random_seed)
     # calculate skeleton points based on curvature
     print('finding new skeleton points')
-    new_points, total_skeleton_points, edge_points = [], [], []
-    start_edge_points, end_edge_points, skeleton_points = [], [], []
-    skeleton_points_dict = {}
-    start_points_dict, end_points_dict = {}, {}
-    for i in range(num_files):
-        new_points.append([])
-        start_edge_points.append([])
-        end_edge_points.append([])
-        skeleton_points.append([])
-        total_skeleton_points.append(np.array([[0, 0, 0]], dtype=float))
-        edge_points.append([])
-        skeleton_points_dict[i] = {}
-        start_points_dict[i] = {}
-        end_points_dict[i] = {}
-    skeleton_lengths = {}
-    average, standard_deviation = math_utils.calculate_average_and_standard_deviation(lengths)
-    # todo: parameter for sigma!
-    samples = np.random.normal(0.5, 0.2, num_files)
-    for i, sample in enumerate(samples):
-        # new_distance = sample[0]
-        whole_std_interval = 2 * np.array(standard_deviation)
-        new_length = (average - standard_deviation) + sample * whole_std_interval
-        skeleton_lengths[i] = np.array(new_length)
-    # kde = gaussian_kde(np.array(lengths))
-    # new_lengths = kde.resample(num_files)
-    # for i in range(num_files):
-    #     skeleton_lengths[i] = new_lengths[0][i]
-        # skeleton_lengths[i] = np.array([150.0])
-    # direction = np.array([0.0, 0.0, 1.0])
-    # T = np.array([0, 1, 0])
-    T = np.array([0, 0, 1])
-    B = np.array([0, 1, 0])
-    N = np.array([1, 0, 0])
-    first_N = N
-    first_T = T
-    first_B = B
-    # for index, c in enumerate(curvature):
-    #     data = curvature[c]
-    #     if len(data) == 1:
-    #         new_curvatures = [[data[0]]]
-    #     else:
-    #         kde = gaussian_kde(data)
-    #         new_curvatures = kde.resample(num_files)
-    #     for i, sample in enumerate(new_curvatures[0]):
-    #         new_curvature = sample
-    #         torsion = 0
-    #         # if index == 12:
-    #         #     torsion = 1.57
-    #         #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
-    #         solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, 12)
-    #         solution = solution[1]
-    #         total_skeleton_points[i] = np.append(total_skeleton_points[i], [
-    #             # calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))
-    #             [solution[0], solution[1], solution[2]]
-    #         ], axis=0)
-    #         # update T. N and B
-    #         T = [solution[3], solution[4], solution[5]]
-    #         N = [solution[6], solution[7], solution[8]]
-    #         B = [solution[9], solution[10], solution[11]]
-    #         # new_skeleton_point, direction = calculate_new_point(direction, total_skeleton_points[i][-1], new_curvature, (skeleton_lengths[i] / len(curvature))[0])
-    #         # total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
-    # utils.plot_3d(total_skeleton_points[0])
-    # generate points on skeleton
+    skeleton_points = []
+    skeleton_outside_points, start_points_dict, end_points_dict, skeleton_lengths = {}, {}, {}, {}
+    skeleton_points.append([0, 0, 0])
+    if len(lengths) == 1:
+        total_skeleton_length = lengths[0]
+    else:
+        total_skeleton_length = utils.retrieve_new_value_from_standard_derivation(sigma.length, lengths)[0]
+    print('using skeleton length of', total_skeleton_length)
     print('generating skeleton points')
-    # for point, distances_around in skeleton_distances.items():
-    #     for angle, distances in distances_around.items():
-    #         distances = np.array(distances)
-    #         kde = gaussian_kde(distances)
-    #         new_distances = kde.resample(num_files)
-    #         for i, sample in enumerate(new_distances):
-    #             if point not in skeleton_points_dict[i]:
-    #                 skeleton_points_dict[i][point] = {}
-    #             new_distance = sample[0]
-    #             # calculate new boundary point in 3D space
-    #             direction = math_utils.rotate_vector(np.array([1, 0, 0]), angle, np.array([0, 0, 1]))
-    #             # vector_base = total_skeleton_points[i][point] - total_skeleton_points[i][point - 1]
-    #             # translation = vector_base - np.array([0, 0, 1])
-    #             # direction = math_utils.normalize(
-    #             #     math_utils.rotate_vector(
-    #             #             math_utils.normalize(np.array([1, 0, 0]) + translation), angle, math_utils.normalize(vector_base)
-    #             #     )
-    #             # )
-    #             # direction = math_utils.rotate_vector(vector_base, angle, vector_base + translation)
-    #             new_point = new_distance * np.array(direction) + total_skeleton_points[i][point]
-    #             skeleton_points_dict[i][point][angle % 360] = new_point
-    # todo: zdruzi iskanje skeleton tock z generiranjem tock okoli
+    # calculate new skeleton points of mitochondria using Frenet-Serret equations
+    T = np.array([0, 0, 1])
+    N = np.array([1, 0, 0])
+    B = np.array([0, 1, 0])
     for index, c in enumerate(curvature):
         if len(curvature[c]) == 1:
-            new_curvatures = [[curvature[c][0]]]
+            new_curvature = curvature[c][0]
         else:
-            kde = gaussian_kde(c)
-            new_curvatures = kde.resample(num_files)
-        for i, sample in enumerate(new_curvatures[0]):
-            new_curvature = sample
-            torsion = 0
-            if index == 7:
-                print('a')
-                torsion = 3.57
-            #total_skeleton_points[i] = np.append(total_skeleton_points[i], [calculate_new_skeleton_point(total_skeleton_points[i][-1], new_curvature, skeleton_lengths[i] / len(curvature))], axis=0)
-            solution = math_utils.calculate_next_skeleton_point(total_skeleton_points[i][-1], T, N, B, new_curvature, torsion, skeleton_lengths[i] / len(curvature))[1]
-            # update T. N and B
-            T = [solution[3], solution[4], solution[5]]
-            N = [solution[6], solution[7], solution[8]]
-            B = [solution[9], solution[10], solution[11]]
-            if index == 0:
-                first_N = N
-                first_B = B
-                first_T = T
-            new_skeleton_point = [solution[0], solution[1], solution[2]]
-            total_skeleton_points[i] = np.append(total_skeleton_points[i], [new_skeleton_point], axis=0)
-            if index not in skeleton_distances:
-                continue
-            for angle, distances in skeleton_distances[index].items():
-                distances = np.array(distances)
-                # math_utils.plot_histogram(distances)
-                # kde = gaussian_kde(distances)
-                # new_distances = kde.resample(num_files)
-                # todo: support for multiple files
-                average, standard_deviation = math_utils.calculate_average_and_standard_deviation(distances)
-                # todo: parameter for sigma!
-                samples = np.random.normal(0.5, 0.2, num_files)
-                for i1, sample1 in enumerate(samples):
-                    if index not in skeleton_points_dict[i1]:
-                        skeleton_points_dict[i1][index] = {}
-                    whole_std_interval = 2 * np.array(standard_deviation)
-                    new_distance = (average - standard_deviation) + sample1 * whole_std_interval
-                    direction = math_utils.rotate_vector(np.array(N), angle, np.array(T))
-                    new_point = new_distance * np.array(direction) + new_skeleton_point
-                    skeleton_points_dict[i1][index][angle % 360] = new_point
-    # utils.plot_3d(total_skeleton_points[0])
+            new_curvature = utils.retrieve_new_value_from_standard_derivation(sigma.curvature, curvature[c])[0]
+        new_torsion = utils.retrieve_new_value_from_standard_derivation(sigma.torsion, torsions[c])[0]
+        print('using values', new_curvature, new_torsion, 'for curvature and torsion at index', index)
+        solution = math_utils.calculate_next_skeleton_point(skeleton_points[-1], T, N, B, new_curvature, new_torsion, total_skeleton_length / len(curvature))[1]
+        # update T. N and B
+        T = [solution[3], solution[4], solution[5]]
+        N = [solution[6], solution[7], solution[8]]
+        B = [solution[9], solution[10], solution[11]]
+        new_skeleton_point = [solution[0], solution[1], solution[2]]
+        skeleton_points = np.append(skeleton_points, [new_skeleton_point], axis=0)
+        if index not in skeleton_distances:
+            continue
+        for angle, distances in skeleton_distances[index].items():
+            if index not in skeleton_outside_points:
+                skeleton_outside_points[index] = {}
+            new_distance = utils.retrieve_new_value_from_standard_derivation(sigma.skeleton_points, distances)
+            direction = math_utils.rotate_vector(np.array(N), angle, np.array(T))
+            new_point = new_distance * np.array(direction) + new_skeleton_point
+            skeleton_outside_points[index][angle % 360] = new_point
     print('generating end points')
     for direction, distances in end_distances.items():
         distances = np.array(distances)
-        # kde = gaussian_kde(distances)
-        # new_distances = kde.resample(num_files)
         theta, phi = direction_with_angles[direction]
-        # todo: support for multiple files
-        average, standard_deviation = math_utils.calculate_average_and_standard_deviation(distances)
-        # todo: parameter for sigma!
-        samples = np.random.normal(0.5, 0.2, num_files)
-        for i, sample in enumerate(samples):
-            # new_distance = sample[0]
-            whole_std_interval = 2 * np.array(standard_deviation)
-            new_distance = (average - standard_deviation) + sample * whole_std_interval
-            # calculate new boundary point in 3D space
-            normal_start = math_utils.normalize(total_skeleton_points[i][-1] - total_skeleton_points[i][-2])
-            R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
-            new_direction = np.dot(R, direction)
-            # new_direction = math_utils.rotate_vector1(direction, np.array([0, 0, 1]), normal_start, np.array([1, 0, 0]), N)
-            # new_direction = math_utils.new_point(theta, phi, N, B, T)
-            new_point = new_distance * new_direction + total_skeleton_points[i][-1]
-            new_point_key = (new_point[0], new_point[1], new_point[2])
-            end_points_dict[i][new_point_key] = (theta, phi)
+        new_distance = utils.retrieve_new_value_from_standard_derivation(sigma.end_points, distances)
+        normal_start = math_utils.normalize(skeleton_points[-1] - skeleton_points[-2])
+        R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
+        new_direction = np.dot(R, direction)
+        new_point = new_distance * new_direction + skeleton_points[-1]
+        new_point_key = (new_point[0], new_point[1], new_point[2])
+        end_points_dict[new_point_key] = (theta, phi)
     print('generating starts points')
     for direction, distances in start_distances.items():
-        distances.sort()
         distances = np.array(distances)
-        # kde = gaussian_kde(distances)
-        # new_distances = kde.resample(num_files)
+        new_distance = utils.retrieve_new_value_from_standard_derivation(sigma.start_points, distances)
         theta, phi = direction_with_angles[direction]
-        # todo: support for multiple files
-        average, standard_deviation = math_utils.calculate_average_and_standard_deviation(distances)
-        # todo: parameter for sigma!
-        samples = np.random.normal(0.5, 0.2, num_files)
-        for i, sample in enumerate(samples):
-            # new_distance = sample[0]
-            whole_std_interval = 2 * np.array(standard_deviation)
-            new_distance = (average - standard_deviation) + sample * whole_std_interval
-            # calculate new boundary point in 3D space
-            normal_start = math_utils.normalize(total_skeleton_points[i][0] - total_skeleton_points[i][1]) * -1
-            R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
-            # new_direction = np.dot(R, direction)
-            # new_point = new_distance * new_direction
-            # R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
-            new_direction = np.dot(R, direction)
-            new_direction[2] *= -1
-            # new_direction = math_utils.new_point(theta, phi, first_N, first_B, first_T)
-            new_point = new_distance * new_direction + total_skeleton_points[i][0]
-            new_point_key = (new_point[0], new_point[1], new_point[2])
-            start_points_dict[i][new_point_key] = (theta, phi)
-    for i in range(num_files):
-        vertices, faces = generate_mesh(skeleton_points_dict[i], start_points_dict[i], end_points_dict[i])
-        utils.generate_obj_file(vertices, faces, f'test_{i}.obj')
-        tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-        smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
-        utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth_{i}.obj')
-    # save_as_nii_layers(start_edge_points, end_edge_points, skeleton_points)
-    # save_as_nii(new_points)
-    # save_as_normal_file(new_points, 1)
+        normal_start = math_utils.normalize(skeleton_points[0] - skeleton_points[1]) * -1
+        R = math_utils.get_rotation_matrix(np.array([0, 0, 1]), normal_start)
+        new_direction = np.dot(R, direction)
+        new_direction[2] *= -1
+        new_point = new_distance * new_direction + skeleton_points[0]
+        new_point_key = (new_point[0], new_point[1], new_point[2])
+        start_points_dict[new_point_key] = (theta, phi)
+    vertices, faces = generate_mesh(skeleton_outside_points, start_points_dict, end_points_dict)
+    utils.generate_obj_file(vertices, faces, f'test.obj')
+    tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+    smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
+    utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth.obj')
 
 
 def generate_mesh(skeleton_points, start_points, end_points):
@@ -410,7 +261,6 @@ def generate_mesh(skeleton_points, start_points, end_points):
                 triangle_2 = [point_vertice_indexes[kroznica_points[0][0]], point_vertice_indexes[grouped_data_end[0][0][0]], point_vertice_indexes[grouped_data_end[0][skeleton_index][0]]]
                 faces.append(triangle_2)
         index += 1
-    # todo: doloci na katero se veze posamezna tocka?????
     print('skeleton points')
     for ring, points_at_angle in skeleton_points.items():
         angles = list(points_at_angle.keys())
@@ -447,34 +297,23 @@ def generate_mesh(skeleton_points, start_points, end_points):
                     triangle_5 = [index, point_vertice_indexes[same_point_previous_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                     faces.append(triangle_5)
             elif ring == 1:
-                # todo: komentiraj, zakaj tu tako - TU ŠE NEKI NE DELA
-                num_of_points = int(360 / angle_increment)
-                # kroznica_index = int((num_of_points - i + num_of_points / 2) % num_of_points)
-                # if 0 <= i <= num_of_points / 2:
-                #     kroznica_index = num_of_points / 2 - i
-                # elif num_of_points / 2 < i <= num_of_points:
-                #     kroznica_index = num_of_points + num_of_points / 2 - i
-                # kroznica_index = int(kroznica_index)
-                # kroznica_index = i
-                # kroznica_angle = num_of_points - angle
-                kroznica_index = i
                 # last ring connects to start points
                 previous_point_same_ring = points_at_angle[angle - angle_increment]
                 previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
-                previous_point_previous_ring = kroznica_start_points[kroznica_index - 1][0]
+                previous_point_previous_ring = kroznica_start_points[i - 1][0]
                 previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
-                same_point_previous_ring = kroznica_start_points[kroznica_index][0]
+                same_point_previous_ring = kroznica_start_points[i][0]
                 same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
                 triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                 faces.append(triangle_1)
                 triangle_2 = [index, point_vertice_indexes[previous_point_previous_ring_key], point_vertice_indexes[same_point_previous_ring_key]]
                 faces.append(triangle_2)
-                if kroznica_index == len(angles) - 1:
+                if i == len(angles) - 1:
                     previous_point_same_ring = points_at_angle[0]
                     previous_point_same_ring_key = utils.dict_key_from_point(previous_point_same_ring)
                     previous_point_previous_ring = kroznica_start_points[0][0]
                     previous_point_previous_ring_key = utils.dict_key_from_point(previous_point_previous_ring)
-                    same_point_previous_ring = kroznica_start_points[kroznica_index][0]
+                    same_point_previous_ring = kroznica_start_points[i][0]
                     same_point_previous_ring_key = utils.dict_key_from_point(same_point_previous_ring)
                     triangle_1 = [index, point_vertice_indexes[previous_point_same_ring_key], point_vertice_indexes[previous_point_previous_ring_key]]
                     faces.append(triangle_1)
@@ -509,25 +348,58 @@ def generate_mesh(skeleton_points, start_points, end_points):
 
 def create_parser():
     parser = argparse.ArgumentParser(description='Generate new mitochondria shape')
-    parser.add_argument('-f', '--files', help='number of files to be generated')
     parser.add_argument('-c', '--curvature', help='curvature of the generated shapes', nargs='*')
     parser.add_argument('-l', '--length', help='length of the generated shapes')
+    parser.add_argument('-sl', '--sigma-length', help='value of sigma for length')
+    parser.add_argument('-ss', '--sigma-skeleton', help='value of sigma for skeleton points')
+    parser.add_argument('-sst', '--sigma-start', help='value of sigma for start points')
+    parser.add_argument('-se', '--sigma-end', help='value of sigma for end points')
+    parser.add_argument('-sc', '--sigma-curvature', help='value of sigma for curvature')
+    parser.add_argument('-st', '--sigma-torsion', help='value of sigma for torsion')
     return parser
 
 
+def validate_sigma_parameter(sigma):
+    if sigma < 0 or sigma > 1:
+        raise ValueError('sigma value must be between 0 and 1')
+
+
 if __name__ == '__main__':
-    num_of_files = 1
-    curvature, start, end, skeleton, lengths, direction_with_angles = utils.read_measurements_from_file('measurements.pkl')
+    curvature, start, end, skeleton, lengths, direction_with_angles, torsions = utils.read_measurements_from_file('measurements.pkl')
     parser = create_parser()
     args = parser.parse_args()
-    if args.files:
-        num_of_files = int(args.files)
     if args.curvature:
         if len(curvature.keys()) != len(args.curvature):
             raise Exception('number of curvature values must match the number of characteristic points')
         for i, values in curvature.items():
             curvature[i] = [float(args.curvature[i])]
+    sigma = SigmaParameters()
+    if args.sigma_length:
+        value = float(args.sigma_length)
+        validate_sigma_parameter(value)
+        sigma.length = value
+    if args.sigma_skeleton:
+        value = float(args.sigma_skeleton)
+        validate_sigma_parameter(value)
+        sigma.skeleton_points = value
+    if args.sigma_start:
+        value = float(args.sigma_start)
+        validate_sigma_parameter(value)
+        sigma.start_points = value
+    if args.sigma_end:
+        value = float(args.sigma_end)
+        validate_sigma_parameter(value)
+        sigma.end_points = value
+    if args.sigma_curvature:
+        value = float(args.sigma_curvature)
+        validate_sigma_parameter(value)
+        sigma.curvature = value
+    if args.sigma_torsion:
+        value = float(args.sigma_torsion)
+        validate_sigma_parameter(value)
+        sigma.torsion = value
     if args.length:
         lengths = [float(args.length)]
-    sample_new_points(skeleton, start, end, curvature, num_of_files, direction_with_angles, lengths)
+    print('using sigma values:', sigma)
+    sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, sigma=sigma)
 

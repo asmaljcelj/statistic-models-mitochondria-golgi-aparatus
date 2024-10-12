@@ -333,13 +333,14 @@ def plot_distribution_end_points(data):
         plt.show()
 
 
-def group_distances(skeleton_distances, start_distances, end_distances, curvatures):
+def group_distances(skeleton_distances, start_distances, end_distances, curvatures, torsions):
     print('grouping distances')
     skeleton = group_skeleton_data(skeleton_distances)
     start = group_both_ends_data(start_distances)
     end = group_both_ends_data(end_distances)
     curvature = group_curvatures_data(curvatures)
-    return skeleton, start, end, curvature
+    t = group_curvatures_data(torsions)
+    return skeleton, start, end, curvature, t
 
 
 def group_skeleton_data(data):
@@ -426,8 +427,8 @@ def find_nearest_point_from_point(point, points):
     return min_point, index
 
 
-def save_measurements_to_file(filename, skeleton, start, end, curvature, lengths, direction_with_angles):
-    combined = {'skeleton': skeleton, 'start': start, 'end': end, 'curvature': curvature, 'lengths': lengths, 'direction_with_angles': direction_with_angles}
+def save_measurements_to_file(filename, skeleton, start, end, curvature, lengths, direction_with_angles, torsions):
+    combined = {'skeleton': skeleton, 'start': start, 'end': end, 'curvature': curvature, 'lengths': lengths, 'direction_with_angles': direction_with_angles, 'torsions': torsions}
     with open(filename, 'wb') as file:
         pickle.dump(combined, file)
 
@@ -436,4 +437,11 @@ def read_measurements_from_file(filename):
     print('reading result')
     with open(filename, 'rb') as file:
         data = pickle.load(file)
-        return data['curvature'], data['start'], data['end'], data['skeleton'], data['lengths'], data['direction_with_angles']
+        return data['curvature'], data['start'], data['end'], data['skeleton'], data['lengths'], data['direction_with_angles'], data['torsions']
+
+
+def retrieve_new_value_from_standard_derivation(sigma, data):
+    average, standard_deviation = math_utils.calculate_average_and_standard_deviation(data)
+    sample = np.random.normal(0.5, sigma, 1)
+    whole_std_interval = 2 * np.array(standard_deviation)
+    return (average - standard_deviation) + sample * whole_std_interval

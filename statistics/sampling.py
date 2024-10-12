@@ -73,7 +73,7 @@ def iterate_ray(origin, direction_vector, shape):
 
 def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
     t_list = np.linspace(0, 1, number_of_points + 1).tolist()
-    curvature = []
+    curvature, torsions = [], []
     for t in t_list:
         first_derivative = np.array(bezier.calculate_bezier_derivative(n, arc, t))
         second_derivative = np.array(bezier.calculate_bezier_second_derivative(n, arc, t))
@@ -85,8 +85,9 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
         result = stevec / denominator
         if torsion < 0:
             result *= -1
+        torsions.append(torsion)
         curvature.append(result)
-    return curvature
+    return curvature, torsions
 
 
 def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, object_points, angle_increment=1):
@@ -108,8 +109,8 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
             skleton_distances[i] = sample_rays(current_point, normal, object_points, vector_to_next_point, angle_increment)
         distances_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
         distances_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
-        skeleton_curvature = calculate_skeleton_curvature_and_torsion(n, arc, num_of_points)
-    return skleton_distances, distances_start, distances_end, skeleton_curvature, length
+        skeleton_curvature, skeleton_torsion = calculate_skeleton_curvature_and_torsion(n, arc, num_of_points)
+    return skleton_distances, distances_start, distances_end, skeleton_curvature, length, skeleton_torsion
 
 
 if __name__ == '__main__':
@@ -118,7 +119,7 @@ if __name__ == '__main__':
     angle_increment = 3
     if 360 % angle_increment != 0:
         raise Exception('angle increment has to be a multiple of 360.')
-    distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths = {}, {}, {}, {}, []
+    distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
     direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
@@ -127,20 +128,19 @@ if __name__ == '__main__':
         if skeleton_points is None:
             print('no points for file', filename)
             continue
-        distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
+        distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
         if distances is None:
             new_n = n
             while distances is None:
                 new_n -= 1
                 print('try to form new distances with order', new_n)
-                distances, distance_start, distance_end, skeleton_curvature, length = perform_measurements(new_n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
+                distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(new_n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end
         curvatures_all[filename] = skeleton_curvature
+        torsions[filename] = torsion
         lengths.append(length)
-
-    skeleton, start, end, curvature = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all)
-    # todo: save to file
-    utils.save_measurements_to_file('measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles)
+    skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, torsions)
+    utils.save_measurements_to_file('measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles, torsion)
     # outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)
