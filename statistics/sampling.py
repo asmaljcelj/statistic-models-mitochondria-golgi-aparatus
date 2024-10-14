@@ -142,5 +142,5 @@ if __name__ == '__main__':
         torsions[filename] = torsion
         lengths.append(length)
     skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, torsions)
-    utils.save_measurements_to_file('measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles, torsion)
+    utils.save_measurements_to_file('../measurements/measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles, torsion)
     # outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)

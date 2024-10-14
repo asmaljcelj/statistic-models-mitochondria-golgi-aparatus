@@ -365,7 +365,7 @@ def validate_sigma_parameter(sigma):
 
 
 if __name__ == '__main__':
-    curvature, start, end, skeleton, lengths, direction_with_angles, torsions = utils.read_measurements_from_file('measurements.pkl')
+    curvature, start, end, skeleton, lengths, direction_with_angles, torsions = utils.read_measurements_from_file('../measurements/measurements.pkl')
     parser = create_parser()
     args = parser.parse_args()
     if args.curvature:
