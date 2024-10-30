@@ -50,6 +50,7 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         else:
             new_curvature = utils.retrieve_new_value_from_standard_derivation(sigma.curvature, curvature[c])[0]
         new_torsion = utils.retrieve_new_value_from_standard_derivation(sigma.torsion, torsions[c])[0]
+        # new_torsion = 0
         print('using values', new_curvature, new_torsion, 'for curvature and torsion at index', index)
         solution = math_utils.calculate_next_skeleton_point(skeleton_points[-1], T, N, B, new_curvature, new_torsion, total_skeleton_length / len(curvature))[1]
         # update T. N and B
