@@ -100,16 +100,18 @@ def extract_ga_instances(volume):
 
 
 def save_files(image_data, data, og_filename):
+    print('saving files')
     counter = 1
     for key in data:
         new_filename = og_filename[:og_filename.find('.')] + '_' + str(counter)
         counter += 1
         voxels = data[key]
-        final_instance_object = np.zeros(image_data.shape)
-        for voxel in voxels:
-            final_instance_object[voxel[0], voxel[1], voxel[2]] = 1
-        new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
-        nib.save(new_image, extracted_data_directory + '/' + new_filename)
+        # final_instance_object = np.zeros(image_data.shape)
+        # for voxel in voxels:
+        #     final_instance_object[voxel[0], voxel[1], voxel[2]] = 1
+        # new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
+        # nib.save(new_image, extracted_data_directory + '/' + new_filename)
+        np.savetxt('../ga_instances/' + new_filename + '.csv', voxels, delimiter=',', fmt='%-0d')
 
 
 for filename in os.listdir(data_directory):
