@@ -1,7 +1,11 @@
 import os
+import random
 
 import nibabel as nib
 import numpy as np
+
+import pandas as pd
+from sklearn.decomposition import PCA
 
 data_directory = '../data_ga/approximate'
 extracted_data_directory = '../extracted_ga_data'
@@ -98,20 +102,29 @@ def extract_ga_instances(volume):
         print('instance', index, 'has', len(ga_instances[index]), 'voxels')
     return ga_instances
 
+instances_folder = '../ga_instances'
 
 def save_files(image_data, data, og_filename):
     print('saving files')
     counter = 1
+    pca = PCA(n_components=2)
     for key in data:
         new_filename = og_filename[:og_filename.find('.')] + '_' + str(counter)
         counter += 1
         voxels = data[key]
-        # final_instance_object = np.zeros(image_data.shape)
-        # for voxel in voxels:
-        #     final_instance_object[voxel[0], voxel[1], voxel[2]] = 1
-        # new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
-        # nib.save(new_image, extracted_data_directory + '/' + new_filename)
+        final_instance_object = np.zeros(image_data.shape)
+        for voxel in voxels:
+            final_instance_object[voxel[0], voxel[1], voxel[2]] = 1
         np.savetxt('../ga_instances/' + new_filename + '.csv', voxels, delimiter=',', fmt='%-0d')
+        dataset = pd.read_csv(instances_folder + '/' + new_filename + '.csv')
+        pca.fit(dataset)
+        eig_vec = pca.components_
+        first_unit = eig_vec[0]
+        for t in range(-5, 5):
+            point = (t * first_unit[0], t * first_unit[1], t * first_unit[2])
+            final_instance_object[int(point[0])][int(point[1])][int(point[2])] = 120
+        new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
+        nib.save(new_image, extracted_data_directory + '/' + new_filename)
 
 
 for filename in os.listdir(data_directory):
