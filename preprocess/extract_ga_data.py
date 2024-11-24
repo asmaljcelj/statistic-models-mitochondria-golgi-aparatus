@@ -83,6 +83,96 @@ def get_entire_instance_2(start_point, volume, covered_volume):
     return instance_voxels
 
 
+def check_if_boundary_point(current_point, instance_voxels):
+    number_of_instance_neighbors = 0
+    left = [current_point[0] - 1, current_point[1], current_point[2]]
+    if instance_voxels[left[0], left[1], left[2]] == 1:
+        number_of_instance_neighbors += 1
+    right = [current_point[0] + 1, current_point[1], current_point[2]]
+    if instance_voxels[right[0], right[1], right[2]] == 1:
+        number_of_instance_neighbors += 1
+    top = [current_point[0], current_point[1], current_point[2] + 1]
+    if instance_voxels[top[0], top[1], top[2]] == 1:
+        number_of_instance_neighbors += 1
+    bot = [current_point[0], current_point[1], current_point[2] - 1]
+    if instance_voxels[bot[0], bot[1], bot[2]] == 1:
+        number_of_instance_neighbors += 1
+    front = [current_point[0], current_point[1] - 1, current_point[2]]
+    if instance_voxels[front[0], front[1], front[2]] == 1:
+        number_of_instance_neighbors += 1
+    back = [current_point[0], current_point[1] + 1, current_point[2]]
+    if instance_voxels[back[0], back[1], back[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_up_front = [current_point[0] - 1, current_point[1] - 1, current_point[2] + 1]
+    if instance_voxels[left_up_front[0], left_up_front[1], left_up_front[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_front = [current_point[0] - 1, current_point[1] - 1, current_point[2]]
+    if instance_voxels[left_front[0], left_front[1], left_front[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_down_front = [current_point[0] - 1, current_point[1] - 1, current_point[2] - 1]
+    if instance_voxels[left_down_front[0], left_down_front[1], left_down_front[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_up = [current_point[0] - 1, current_point[1], current_point[2] + 1]
+    if instance_voxels[left_up[0], left_up[1], left_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_down = [current_point[0] - 1, current_point[1], current_point[2] - 1]
+    if instance_voxels[left_down[0], left_down[1], left_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_back_up = [current_point[0] - 1, current_point[1] + 1, current_point[2] + 1]
+    if instance_voxels[left_back_up[0], left_back_up[1], left_back_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_back_down = [current_point[0] - 1, current_point[1] + 1, current_point[2] - 1]
+    if instance_voxels[left_back_down[0], left_back_down[1], left_back_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    left_back = [current_point[0] - 1, current_point[1] + 1, current_point[2]]
+    if instance_voxels[left_back[0], left_back[1], left_back[2]] == 1:
+        number_of_instance_neighbors += 1
+    front_up = [current_point[0], current_point[1] - 1, current_point[2] + 1]
+    if instance_voxels[front_up[0], front_up[1], front_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    front_down = [current_point[0], current_point[1] - 1, current_point[2] - 1]
+    if instance_voxels[front_down[0], front_down[1], front_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    back_up = [current_point[0], current_point[1] + 1, current_point[2] + 1]
+    if instance_voxels[back_up[0], back_up[1], back_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    back_down = [current_point[0], current_point[1] + 1, current_point[2] - 1]
+    if instance_voxels[back_down[0], back_down[1], back_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_front_up = [current_point[0] + 1, current_point[1] - 1, current_point[2] + 1]
+    if instance_voxels[right_front_up[0], right_front_up[1], right_front_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_front = [current_point[0] + 1, current_point[1] - 1, current_point[2]]
+    if instance_voxels[right_front[0], right_front[1], right_front[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_front_down = [current_point[0] + 1, current_point[1] - 1, current_point[2] - 1]
+    if instance_voxels[right_front_down[0], right_front_down[1], right_front_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_up = [current_point[0] + 1, current_point[1], current_point[2] + 1]
+    if instance_voxels[right_up[0], right_up[1], right_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_down = [current_point[0] + 1, current_point[1], current_point[2] - 1]
+    if instance_voxels[right_down[0], right_down[1], right_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_back_up = [current_point[0] + 1, current_point[1] + 1, current_point[2] + 1]
+    if instance_voxels[right_back_up[0], right_back_up[1], right_back_up[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_back = [current_point[0] + 1, current_point[1] + 1, current_point[2]]
+    if instance_voxels[right_back[0], right_back[1], right_back[2]] == 1:
+        number_of_instance_neighbors += 1
+    right_back_down = [current_point[0] + 1, current_point[1] + 1, current_point[2] - 1]
+    if instance_voxels[right_back_down[0], right_back_down[1], right_back_down[2]] == 1:
+        number_of_instance_neighbors += 1
+    return number_of_instance_neighbors < 9
+
+def get_point_cloud(instance_points, instance_voxels):
+    point_cloud = []
+    for current_point in instance_points:
+        if check_if_boundary_point(current_point, instance_voxels):
+            point_cloud.append(current_point)
+    return point_cloud
+
+
 
 def extract_ga_instances(volume):
     # instance_volume hrani vrednosti, kateremu GA pripada voksel, ce 0 -> ne pripada nobenemu
@@ -100,6 +190,8 @@ def extract_ga_instances(volume):
     print('found', current_instance - 1, 'instances in this volume')
     for index in ga_instances:
         print('instance', index, 'has', len(ga_instances[index]), 'voxels')
+        point_cloud = get_point_cloud(ga_instances[index], instance_volume)
+        print(point_cloud)
     return ga_instances
 
 instances_folder = '../ga_instances'
@@ -120,9 +212,9 @@ def save_files(image_data, data, og_filename):
         pca.fit(dataset)
         eig_vec = pca.components_
         first_unit = eig_vec[0]
-        for t in range(-5, 5):
-            point = (t * first_unit[0], t * first_unit[1], t * first_unit[2])
-            final_instance_object[int(point[0])][int(point[1])][int(point[2])] = 120
+        # for t in range(1, 15):
+        #     point = (t * first_unit[0], t * first_unit[1], t * first_unit[2])
+        #     final_instance_object[int(point[0])][int(point[1])][int(point[2])] = 120
         new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
         nib.save(new_image, extracted_data_directory + '/' + new_filename)
 
