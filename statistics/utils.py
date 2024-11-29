@@ -445,3 +445,5 @@ def retrieve_new_value_from_standard_derivation(sigma, data):
     sample = np.random.normal(0.5, sigma, 1)
     whole_std_interval = 2 * np.array(standard_deviation)
     return (average - standard_deviation) + sample * whole_std_interval
+
+
