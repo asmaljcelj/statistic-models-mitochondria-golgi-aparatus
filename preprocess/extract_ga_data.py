@@ -1,17 +1,14 @@
-import csv
 import os
-import random
 
+import matplotlib
+import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
-
-import pandas as pd
-import yaml
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-import matplotlib.pyplot as plt
-import matplotlib
+def check_points_in_bounds(point):
+    return 0 <= int(point[0]) <= 255 and 0 <= int(point[1]) <= 255 and 0 <= int(point[2]) <= 255
 
 
 def plot_ga_instances(points, vector, vector2, center, lowest_point, cistarnae):
@@ -228,13 +225,13 @@ def read_files(instance_volume, filename, dataset):
     lowest_point = np.copy(center)
     # point_in_volume = []
     points_to_cover = []
-    while instance_volume[int(lowest_point[0])][int(lowest_point[1])][int(lowest_point[2])] == 1:
+    while check_points_in_bounds(lowest_point) and instance_volume[int(lowest_point[0])][int(lowest_point[1])][int(lowest_point[2])] == 1:
         # point_in_volume = np.copy([int(lowest_point[0]), int(lowest_point[1]), int(lowest_point[2])])
         # points_to_cover.append([int(lowest_point[0]), int(lowest_point[1]), int(lowest_point[2])])
         lowest_point -= height
     lowest_point += height
     new_point = np.copy(lowest_point)
-    while instance_volume[int(new_point[0])][int(new_point[1])][int(new_point[2])] == 1:
+    while check_points_in_bounds(new_point) and instance_volume[int(new_point[0])][int(new_point[1])][int(new_point[2])] == 1:
         points_to_cover.append([int(new_point[0]), int(new_point[1]), int(new_point[2])])
         new_point += height
     print('found', len(points_to_cover), 'points')
@@ -243,20 +240,33 @@ def read_files(instance_volume, filename, dataset):
         if p not in final_list:
             final_list.append(p)
     print('working with', len(final_list), 'points')
+    all_points = []
     counter = 0
     remaining_points = np.copy(dataset)
+    plane_equations = []
     for p in final_list:
         print('processing point', counter, 'of', len(final_list))
+        # print('remaining points:', len(remaining_points))
         # todo: poberi posamezne cisterne
         # width = np.cross(length, height)
+        all_points.append([])
         a, b, c, k = get_plane_equation_parameters(height, p)
-        cistarnae_points, remaining_points = get_all_cisternae_points([a, b, c, k], remaining_points)
-        all_cistarnae_points[counter] = cistarnae_points
+        # cistarnae_points, remaining_points = get_all_cisternae_points([a, b, c, k], remaining_points)
+        # all_cistarnae_points[counter] = cistarnae_points
+        plane_equations.append([a, b, c, k])
         # todo: statistika za posamezno cisterno
         # todo: statistični model???
         counter += 1
+    for point in remaining_points:
+        closest_index = get_all_cisternae_points_from_all(point, plane_equations)
+        # if closest_index not in all_cistarnae_points:
+        #     all_cistarnae_points[closest_index] = []
+        all_points[closest_index].append(point)
+    # print('END remaining points:', len(remaining_points))
     # plot_ga_instances(dataset, height, eig_vec[1], center, point_in_volume, all_cistarnae_points)
-    return all_cistarnae_points
+    for i in range(len(final_list)):
+        all_points[i] = np.array(all_points[i], dtype=object)
+    return all_points
 
 
 def get_plane_equation_parameters(normal, point_on_plane):
@@ -276,6 +286,20 @@ def get_all_cisternae_points(plane_equation, instance_volume):
     return np.array(cisternae), instance_volume
 
 
+# return index of nearest cisternae center
+def get_all_cisternae_points_from_all(point, plane_equations):
+    index, min_distance = -1, -1
+    for i, plane_equation in enumerate(plane_equations):
+        denominator = np.sqrt(plane_equation[0] ** 2 + plane_equation[1] ** 2 + plane_equation[2] ** 2)
+        distance = (plane_equation[0] * point[0] + plane_equation[1] * point[1] + plane_equation[2] * point[2] +
+                    plane_equation[3]) / denominator
+        distance = np.abs(distance)
+        if min_distance == -1 or distance < min_distance:
+            min_distance = distance
+            index = i
+    return index
+
+
 for filename in os.listdir(data_directory):
     relative_file_path = data_directory + '/' + filename
     print('processing file:', filename)
@@ -288,7 +312,7 @@ for filename in os.listdir(data_directory):
         cistarnae = read_files(image_data, filename, ga_instances[instance])
         all_ga_data[instance] = cistarnae
     print('done with processing, saving files')
-    new_filename = filename.replace('.nii.gz', '.npz')
+    new_filename = filename.replace('.nii.gz', '')
     # with open('../ga_instances/' + new_filename, 'w') as outfile:
     #     writer = csv.writer(outfile)
     #     for data in all_ga_data:
@@ -297,6 +321,10 @@ for filename in os.listdir(data_directory):
     for d in all_ga_data:
         # with open('../ga_instances/' + new_filename, 'w') as outfile:
         #     yaml.dump(all_ga_data[d], outfile, default_flow_style=False)
-        data = [all_ga_data[d]]
-        np.savez(new_filename, *data)
+        # data = [all_ga_data[d]]
+        filename = '../ga_instances/' + new_filename + '_' + str(d)
+        np.savez(filename, *all_ga_data[d])
     # save_files(nib_image, ga_instances, filename)
+
+
+

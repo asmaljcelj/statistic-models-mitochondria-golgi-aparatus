@@ -1,5 +1,5 @@
 import csv
-import yaml
+# import yaml
 import numpy as np
 
 path = '../ga_instances'
@@ -47,8 +47,25 @@ data = {
 # for d in data:
 #     # with open('../ga_instances/' + new_filename, 'w') as outfile:
 #     #     yaml.dump(all_ga_data[d], outfile, default_flow_style=False)
-#     data1 = [data[d]]
-#     np.savez('d', *data1)
+#     for i in data[d]:
+#         # data1 = np.array(data[d][i])
+#         filename = 'd_' + d + '_' + i
+#         np.savez(filename, *data[d][i])
+#
+# test = np.load('d_1_0.npz', allow_pickle=True)
+# print()
 
-test = np.load('d.npz', allow_pickle=True)
-print()
+
+# Create a list of 2D numpy arrays
+array_2d_1 = np.array([[1, 2], [3, 4], [6, 7, 8]], dtype=object)
+array_2d_2 = np.array([[5, 6], [7, 8]])
+array_2d_3 = np.array([[9, 10], [11, 12]])
+
+# List of 2D arrays
+list_of_2d_arrays = [array_2d_1, array_2d_2, array_2d_3]
+
+# Create a 3D numpy array from the list of 2D arrays
+array_3d = np.array(list_of_2d_arrays, dtype=object)
+
+# Print the 3D array
+print(array_3d)
