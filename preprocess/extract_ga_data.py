@@ -240,6 +240,8 @@ def read_files(instance_volume, filename, dataset):
         if p not in final_list:
             final_list.append(p)
     print('working with', len(final_list), 'points')
+    if len(final_list) == 0:
+        return []
     all_points = []
     counter = 0
     remaining_points = np.copy(dataset)
@@ -294,6 +296,8 @@ def get_all_cisternae_points_from_all(point, plane_equations):
         distance = (plane_equation[0] * point[0] + plane_equation[1] * point[1] + plane_equation[2] * point[2] +
                     plane_equation[3]) / denominator
         distance = np.abs(distance)
+        if distance == 0:
+            return i
         if min_distance == -1 or distance < min_distance:
             min_distance = distance
             index = i
