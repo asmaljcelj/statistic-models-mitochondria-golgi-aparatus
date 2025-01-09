@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+from networkx.algorithms.threshold import eigenvalues
 from sklearn.decomposition import PCA
 
 def check_points_in_bounds(point):
@@ -304,6 +305,20 @@ def get_all_cisternae_points_from_all(point, plane_equations):
     return index
 
 
+def align_cisternae_to_axis(cisterna):
+    if cisterna.shape[0] < 3:
+        print('cisterna too small, ignore it')
+        return None
+    mean = np.mean(cisterna, axis=0)
+    centered_points = cisterna - mean
+    pca = PCA(n_components=3)
+    pca.fit(centered_points)
+    covariance_matrix = pca.components_
+    values, vectors = np.linalg.eigh(covariance_matrix)
+    rotation_matrix = vectors.T
+    return np.dot(centered_points, rotation_matrix)
+
+
 for filename in os.listdir(data_directory):
     relative_file_path = data_directory + '/' + filename
     print('processing file:', filename)
@@ -314,7 +329,12 @@ for filename in os.listdir(data_directory):
     for instance in ga_instances:
         print('processing instance ', instance)
         cistarnae = read_files(image_data, filename, ga_instances[instance])
-        all_ga_data[instance] = cistarnae
+        new_list = []
+        for c in cistarnae:
+            aligned = align_cisternae_to_axis(c)
+            if aligned is not None:
+                new_list.append(aligned)
+        all_ga_data[instance] = new_list
     print('done with processing, saving files')
     new_filename = filename.replace('.nii.gz', '')
     # with open('../ga_instances/' + new_filename, 'w') as outfile:

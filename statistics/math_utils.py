@@ -240,3 +240,13 @@ def calculate_average_and_standard_deviation(data):
         summed += np.square(average - point)
     standard_deviation = np.sqrt(summed / (len(data) - 1))
     return average, standard_deviation
+
+
+def distance_between_point_and_line(point, line_vector):
+    point = point.astype(np.float64)
+    line_point = np.array([0, 0, 0])
+    ap = point - line_point
+    cross = np.cross(ap, line_vector)
+    magnitude = np.linalg.norm(cross)
+    direction_magnitude = np.linalg.norm(line_vector)
+    return magnitude / direction_magnitude
