@@ -260,6 +260,7 @@ for filename in os.listdir(data_directory):
         index += 1
 average_object_points = generate_average(length, distances)
 plot_points(average_object_points)
+# todo: daj objekt v mesh; zgeneriraj še več referenčnih točk; dodaj kak parameter (npr. št. cistern, standardni odklon)
 
 
 

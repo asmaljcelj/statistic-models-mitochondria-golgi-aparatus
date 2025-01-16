@@ -5,8 +5,18 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from networkx.algorithms.threshold import eigenvalues
+from shapely.creation import points
 from sklearn.decomposition import PCA
+
+
+def plot_points(points):
+    points = np.array(points)
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    plt.show()
+
 
 def check_points_in_bounds(point):
     return 0 <= int(point[0]) <= 255 and 0 <= int(point[1]) <= 255 and 0 <= int(point[2]) <= 255
@@ -230,11 +240,24 @@ def read_files(instance_volume, filename, dataset):
         # point_in_volume = np.copy([int(lowest_point[0]), int(lowest_point[1]), int(lowest_point[2])])
         # points_to_cover.append([int(lowest_point[0]), int(lowest_point[1]), int(lowest_point[2])])
         lowest_point -= height
+    # postavi najnizjo tocko nazaj v predmet
     lowest_point += height
     new_point = np.copy(lowest_point)
+    # zberi vse točke
     while check_points_in_bounds(new_point) and instance_volume[int(new_point[0])][int(new_point[1])][int(new_point[2])] == 1:
-        points_to_cover.append([int(new_point[0]), int(new_point[1]), int(new_point[2])])
+        points_to_cover.append([new_point[0], new_point[1], new_point[2]])
         new_point += height
+    # združi točke, ki so v enakem vokslu
+    points_to_cover_final = []
+    for p in points_to_cover:
+        if len(points_to_cover_final) > 0:
+            last_point = points_to_cover_final[-1]
+            if int(last_point[0]) == int(p[0]) and int(last_point[1]) == int(p[1]) and int(last_point[2]) == int(p[2]):
+                continue
+        points_to_cover_final.append([p[0], p[1], p[2]])
+    print('original size:', len(points_to_cover), '; new size:', len(points_to_cover_final))
+    points_to_cover = points_to_cover_final
+    plot_points(points_to_cover)
     print('found', len(points_to_cover), 'points')
     final_list = []
     for p in points_to_cover:
@@ -250,15 +273,12 @@ def read_files(instance_volume, filename, dataset):
     for p in final_list:
         print('processing point', counter, 'of', len(final_list))
         # print('remaining points:', len(remaining_points))
-        # todo: poberi posamezne cisterne
         # width = np.cross(length, height)
         all_points.append([])
         a, b, c, k = get_plane_equation_parameters(height, p)
         # cistarnae_points, remaining_points = get_all_cisternae_points([a, b, c, k], remaining_points)
         # all_cistarnae_points[counter] = cistarnae_points
         plane_equations.append([a, b, c, k])
-        # todo: statistika za posamezno cisterno
-        # todo: statistični model???
         counter += 1
     for point in remaining_points:
         closest_index = get_all_cisternae_points_from_all(point, plane_equations)
@@ -328,9 +348,9 @@ for filename in os.listdir(data_directory):
     all_ga_data = {}
     for instance in ga_instances:
         print('processing instance ', instance)
-        cistarnae = read_files(image_data, filename, ga_instances[instance])
+        cisternae = read_files(image_data, filename, ga_instances[instance])
         new_list = []
-        for c in cistarnae:
+        for c in cisternae:
             aligned = align_cisternae_to_axis(c)
             if aligned is not None:
                 new_list.append(aligned)
