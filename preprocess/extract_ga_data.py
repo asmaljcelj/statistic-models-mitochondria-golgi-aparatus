@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from shapely.creation import points
 from sklearn.decomposition import PCA
 
 
@@ -15,6 +14,17 @@ def plot_points(points):
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    plt.show()
+
+
+def plot_original_and_aligned_cisterna(original, aligned):
+    original = np.array(original)
+    aligned = np.array(aligned)
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(original[:, 0], original[:, 1], original[:, 2], c='blue')
+    ax.scatter(aligned[:, 0], aligned[:, 1], aligned[:, 2], c='red')
     plt.show()
 
 
@@ -32,7 +42,8 @@ def plot_ga_instances(points, vector, vector2, center, lowest_point, cistarnae):
     # ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='b', label='3D Points')
     colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'magenta']
     for i, c in enumerate(cistarnae):
-        ax.scatter(cistarnae[c][:, 0], cistarnae[c][:, 1], cistarnae[c][:, 2], c=colors[i % len(colors)], label='cistarnae' + str(i))
+        if len(c) != 0:
+            ax.scatter(c[:, 0], c[:, 1], c[:, 2], c=colors[i % len(colors)], label='cistarnae' + str(i))
 
     # t = np.linspace(0, 10, 100)
     # x = t * vector[0] # X coordinates
@@ -170,7 +181,6 @@ def get_entire_instance_2(start_point, volume, covered_volume, instantiated_volu
 #     return point_cloud
 
 
-
 def extract_ga_instances(volume):
     # instance_volume hrani vrednosti, kateremu GA pripada voksel, ce 0 -> ne pripada nobenemu
     # covered_volume: vrednost 0 -> voksel se ni bil obdelan, 1 -> je ze bil obdelan
@@ -236,7 +246,8 @@ def read_files(instance_volume, filename, dataset):
     lowest_point = np.copy(center)
     # point_in_volume = []
     points_to_cover = []
-    while check_points_in_bounds(lowest_point) and instance_volume[int(lowest_point[0])][int(lowest_point[1])][int(lowest_point[2])] == 1:
+    # while check_points_in_bounds(lowest_point) and instance_volume[int(lowest_point[0])][int(lowest_point[1])][int(lowest_point[2])] == 1:
+    while check_points_in_bounds(lowest_point):
         # point_in_volume = np.copy([int(lowest_point[0]), int(lowest_point[1]), int(lowest_point[2])])
         # points_to_cover.append([int(lowest_point[0]), int(lowest_point[1]), int(lowest_point[2])])
         lowest_point -= height
@@ -244,7 +255,8 @@ def read_files(instance_volume, filename, dataset):
     lowest_point += height
     new_point = np.copy(lowest_point)
     # zberi vse točke
-    while check_points_in_bounds(new_point) and instance_volume[int(new_point[0])][int(new_point[1])][int(new_point[2])] == 1:
+    # while check_points_in_bounds(new_point) and instance_volume[int(new_point[0])][int(new_point[1])][int(new_point[2])] == 1:
+    while check_points_in_bounds(new_point):
         points_to_cover.append([new_point[0], new_point[1], new_point[2]])
         new_point += height
     # združi točke, ki so v enakem vokslu
@@ -336,7 +348,9 @@ def align_cisternae_to_axis(cisterna):
     covariance_matrix = pca.components_
     values, vectors = np.linalg.eigh(covariance_matrix)
     rotation_matrix = vectors.T
-    return np.dot(centered_points, rotation_matrix)
+    result = np.dot(centered_points, rotation_matrix)
+    plot_original_and_aligned_cisterna(cisterna, result)
+    return result
 
 
 for filename in os.listdir(data_directory):
@@ -349,6 +363,8 @@ for filename in os.listdir(data_directory):
     for instance in ga_instances:
         print('processing instance ', instance)
         cisternae = read_files(image_data, filename, ga_instances[instance])
+        print('done with cisternae extraction')
+        # plot_ga_instances(None, None, None, None, None, cisternae)
         new_list = []
         for c in cisternae:
             aligned = align_cisternae_to_axis(c)
