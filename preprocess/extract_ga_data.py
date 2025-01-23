@@ -23,8 +23,9 @@ def plot_original_and_aligned_cisterna(original, aligned):
     matplotlib.use('TkAgg')
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(original[:, 0], original[:, 1], original[:, 2], c='blue')
-    ax.scatter(aligned[:, 0], aligned[:, 1], aligned[:, 2], c='red')
+    ax.scatter(original[:, 0], original[:, 1], original[:, 2], c='blue', label='original')
+    ax.scatter(aligned[:, 0], aligned[:, 1], aligned[:, 2], c='red', label='aligned')
+    ax.legend()
     plt.show()
 
 
@@ -269,7 +270,7 @@ def read_files(instance_volume, filename, dataset):
         points_to_cover_final.append([p[0], p[1], p[2]])
     print('original size:', len(points_to_cover), '; new size:', len(points_to_cover_final))
     points_to_cover = points_to_cover_final
-    plot_points(points_to_cover)
+    # plot_points(points_to_cover)
     print('found', len(points_to_cover), 'points')
     final_list = []
     for p in points_to_cover:
@@ -336,20 +337,24 @@ def get_all_cisternae_points_from_all(point, plane_equations):
             index = i
     return index
 
-
+# method from https://stackoverflow.com/questions/67108932/align-pca-component-with-cartesian-axis-with-rotation
 def align_cisternae_to_axis(cisterna):
     if cisterna.shape[0] < 3:
         print('cisterna too small, ignore it')
         return None
     mean = np.mean(cisterna, axis=0)
+    # mean = np.array([int(mean[0]), int(mean[1]), int(mean[2])])
     centered_points = cisterna - mean
-    pca = PCA(n_components=3)
-    pca.fit(centered_points)
-    covariance_matrix = pca.components_
-    values, vectors = np.linalg.eigh(covariance_matrix)
-    rotation_matrix = vectors.T
-    result = np.dot(centered_points, rotation_matrix)
-    plot_original_and_aligned_cisterna(cisterna, result)
+    centered_points = np.array(centered_points, dtype='float64')
+    # pca = PCA(n_components=3)
+    # pca.fit(centered_points)
+    # covariance_matrix = pca.components_
+    # values, vectors = np.linalg.eigh(covariance_matrix)
+    # rotation_matrix = vectors.T
+    # result = np.dot(centered_points, covariance_matrix)
+    U, S, Vt = np.linalg.svd(centered_points)
+    result = centered_points @ Vt.T
+    # plot_original_and_aligned_cisterna(cisterna, result)
     return result
 
 

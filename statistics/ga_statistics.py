@@ -1,5 +1,6 @@
 import os
 
+import utils
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
@@ -215,8 +216,10 @@ def generate_average(cisternae_sizes, distances):
     # zdruzi posamezne meritve med sabo
     num_of_remaining = num_of_cisternas - 2
     num_per_stack = int(len(distances) / num_of_remaining)
-    final_object = []
-    final_object.extend(populate_instances(average_distances_zero, [0, 0, 0]))
+    final_object, final_object_dict = [], {}
+    zero = populate_instances(average_distances_zero, [0, 0, 0])
+    final_object_dict[0] = zero
+    final_object.extend(zero)
     for i in range(1, num_of_cisternas - 1):
         # zdruzi
         starting_index = (i - 1) * num_per_stack + 1
@@ -226,9 +229,44 @@ def generate_average(cisternae_sizes, distances):
             combined_data.extend(distances[j])
         combined_data = np.array(combined_data)
         average_distances = np.mean(combined_data, axis=0)
-        final_object.extend(populate_instances(average_distances, [0, 0, i]))
-    final_object.extend(populate_instances(average_distances_max, [0, 0, num_of_cisternas - 1]))
-    return np.array(final_object)
+        points = populate_instances(average_distances, [0, 0, i])
+        final_object_dict[i] = points
+        final_object.extend(points)
+    final = populate_instances(average_distances_max, [0, 0, num_of_cisternas - 1])
+    final_object_dict[num_of_cisternas - 1] = final
+    final_object.extend(final)
+    return np.array(final_object), final_object_dict
+
+
+def generate_mesh(points):
+    index = 0
+    vertices, faces = [], []
+    for i, c in enumerate(points):
+        cisterna_points = points[c]
+        if i == 0 or i == len(points) - 1:
+            # ce smo na dnu ali na vrhu, generiraj se eno tocko v sredini in poveži v mesh
+            print()
+            center = np.mean(cisterna_points, axis=0)
+            vertices.append(center)
+            center_index = index
+            index += 1
+            for j, point in enumerate(cisterna_points):
+                vertices.append(point)
+                if j > 0:
+                    faces.append([index, center_index, index - 1])
+                index += 1
+            if i == 0:
+                continue
+        for j, point in enumerate(cisterna_points):
+            vertices.append(point)
+            if j > 0:
+                same_ring_previous = index - 1
+                previous_ring_same = index - len(cisterna_points)
+                previous_ring_previous = index - len(cisterna_points) - 1
+                faces.append([index, previous_ring_same, previous_ring_previous])
+                faces.append([index, same_ring_previous, previous_ring_previous])
+            index += 1
+    return vertices, faces
 
 
 length = []
@@ -256,11 +294,11 @@ for filename in os.listdir(data_directory):
         # izracunaj distanco do "landmark" tock za vsako cisterno
         x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
         distances_index = int(len(distances) / max_cisternas_of_instance * index)
-        distances[distances_index].append([x, y, minus_x, minus_y, first, second, third, fourth])
+        distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
         index += 1
-average_object_points = generate_average(length, distances)
-plot_points(average_object_points)
+average_object_points, points_dict = generate_average(length, distances)
+# plot_points(average_object_points)
 # todo: daj objekt v mesh; zgeneriraj še več referenčnih točk; dodaj kak parameter (npr. št. cistern, standardni odklon)
-
-
+vertices, faces = generate_mesh(points_dict)
+utils.generate_obj_file(vertices, faces, f'ga_average.obj')
 
