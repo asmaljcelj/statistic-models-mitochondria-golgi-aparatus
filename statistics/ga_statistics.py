@@ -1,14 +1,10 @@
 import os
 
-import utils
 import numpy as np
-import matplotlib
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.spatial import ConvexHull
-import alphashape
 
 import math_utils
+import utils
 
 gradient = [
  [0.0, 0.0, 1.0, 1.0],
@@ -245,7 +241,7 @@ def generate_mesh(points):
         cisterna_points = points[c]
         if i == 0 or i == len(points) - 1:
             # ce smo na dnu ali na vrhu, generiraj se eno tocko v sredini in poveži v mesh
-            print()
+            # print()
             center = np.mean(cisterna_points, axis=0)
             vertices.append(center)
             center_index = index
@@ -296,6 +292,8 @@ for filename in os.listdir(data_directory):
         distances_index = int(len(distances) / max_cisternas_of_instance * index)
         distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
         index += 1
+
+utils.save_ga_measurements_to_file('../measurements/measurements_ga.pkl', distances)
 average_object_points, points_dict = generate_average(length, distances)
 # plot_points(average_object_points)
 # todo: daj objekt v mesh; zgeneriraj še več referenčnih točk; dodaj kak parameter (npr. št. cistern, standardni odklon)

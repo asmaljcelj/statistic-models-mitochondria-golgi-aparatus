@@ -433,6 +433,27 @@ def save_measurements_to_file(filename, skeleton, start, end, curvature, lengths
         pickle.dump(combined, file)
 
 
+def save_ga_measurements_to_file(filename, x, first, y, second, minus_x, third, minus_y, fourth):
+    combined = {'x': x, 'first': first, 'y': y, 'second': second, 'minus_x': minus_x,
+                'third': third, 'minus_y': minus_y, 'fourth': fourth}
+    with open(filename, 'wb') as file:
+        pickle.dump(combined, file)
+
+
+def group_calculations_ga(distances):
+    x, first, y, second, minus_x, third, minus_y, fourth = [], [], [], [], [], [], [], []
+    for distance in distances:
+        x.append(distance[0])
+        first.append(distance[1])
+        y.append(distance[2])
+        second.append(distance[3])
+        minus_x.append(distance[4])
+        third.append(distance[5])
+        minus_y.append(distance[6])
+        fourth.append(distance[7])
+    return x, first, y, second, minus_x, third, minus_y, fourth
+
+
 def read_measurements_from_file(filename):
     print('reading result')
     with open(filename, 'rb') as file:
