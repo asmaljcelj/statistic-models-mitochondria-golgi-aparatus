@@ -250,3 +250,7 @@ def distance_between_point_and_line(point, line_vector):
     magnitude = np.linalg.norm(cross)
     direction_magnitude = np.linalg.norm(line_vector)
     return magnitude / direction_magnitude
+
+
+def calculate_average_cisterna(cisterna):
+    return [sum(sublist) / len(sublist) for sublist in cisterna]
