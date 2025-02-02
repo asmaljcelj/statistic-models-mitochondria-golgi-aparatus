@@ -10,36 +10,41 @@ def generate_mesh(points):
     vertices, faces = [], []
     for i, c in enumerate(points):
         cisterna_points = points[c]
-        if i == 0 or i == len(points) - 1:
-            # ce smo na dnu ali na vrhu, generiraj se eno tocko v sredini in poveži v mesh
-            # print()
-            center = np.mean(cisterna_points, axis=0)
-            vertices.append(center)
-            center_index = index
-            index += 1
+        if i > 0:
             for j, point in enumerate(cisterna_points):
                 vertices.append(point)
                 if j > 0:
-                    faces.append([index, center_index, index - 1])
+                    same_ring_previous = index - 1
+                    previous_ring_same = index - len(cisterna_points)
+                    previous_ring_previous = index - len(cisterna_points) - 1
+                    faces.append([index, previous_ring_previous, previous_ring_same])
+                    faces.append([index, same_ring_previous, previous_ring_previous])
+                if j == len(cisterna_points) - 1:
+                    same_ring_previous = index - len(cisterna_points) + 1
+                    previous_ring_same = index - len(cisterna_points)
+                    previous_ring_previous = index - 2 * len(cisterna_points) + 1
+                    faces.append([index, previous_ring_same, previous_ring_previous])
+                    faces.append([index, previous_ring_previous, same_ring_previous])
                 index += 1
-            if i == 0:
-                continue
-        for j, point in enumerate(cisterna_points):
-            vertices.append(point)
-            if j > 0:
-                same_ring_previous = index - 1
-                previous_ring_same = index - len(cisterna_points)
-                previous_ring_previous = index - len(cisterna_points) - 1
-                faces.append([index, previous_ring_same, previous_ring_previous])
-                faces.append([index, same_ring_previous, previous_ring_previous])
-            if j == len(cisterna_points) - 1:
-                # todo: kaj je tukaj narobe???
-                same_ring_previous = index - len(cisterna_points) + 1
-                previous_ring_same = index - 2 * len(cisterna_points)
-                previous_ring_previous = index - len(cisterna_points)
-                faces.append([index, previous_ring_same, previous_ring_previous])
-                faces.append([index, same_ring_previous, previous_ring_previous])
+        if i == 0 or i == len(points) - 1:
+            # ce smo na dnu ali na vrhu, generiraj se eno tocko v sredini in poveži v mesh
+            center = np.mean(cisterna_points, axis=0)
+            vertices.append(center)
             index += 1
+            center_index = index
+            for j, point in enumerate(cisterna_points):
+                vertices.append(point)
+                if j > 0:
+                    if i == 0:
+                        faces.append([index, index - 1, center_index])
+                    else:
+                        faces.append([index, center_index, index - 1])
+                if j == len(cisterna_points) - 1:
+                    if i == 0:
+                        faces.append([index, center_index + 1, center_index])
+                    else:
+                        faces.append([index, center_index, center_index + 1])
+                index += 1
     return vertices, faces
 
 def populate_instances(distances, starting_point):

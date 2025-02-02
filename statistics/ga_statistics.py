@@ -118,62 +118,81 @@ def extract_edge(cisterna):
     return np.array(cisterna_edge_points)
 
 
-def get_furthest_point_in_direction(line_vector, points, mode):
-    line_vector = np.array(line_vector, dtype=np.float64)
-    tol = 1
-    max_distance = -1
+def get_furthest_point_in_direction(line_vector, points, mode, threshold=1e-6):
+    line_vector = np.array(line_vector)
+    max_distance = -float('inf')
+    furthest_point = None
     for point in points:
-        distance_from_line = math_utils.distance_between_point_and_line(point, line_vector)
-        if abs(distance_from_line) < tol:
-            if mode == 0 and point[0] < 0:
-                continue
-            if mode == 1 and point[1] < 0:
-                continue
-            if mode == 2 and point[0] > 0:
-                continue
-            if mode == 3 and point[1] > 0:
-                continue
-            if mode == 4 and (point[0] < 0 or point[1] < 0):
-                continue
-            if mode == 5 and (point[0] < 0 or point[1] > 0):
-                continue
-            if mode == 6 and (point[0] > 0 or point[1] < 0):
-                continue
-            if mode == 7 and (point[0] > 0 or point[1] > 0):
-                continue
-            distance = np.sqrt(np.square(point[0]) + np.square(point[1]) + np.square(point[2]))
-            if distance > max_distance:
-                max_distance = distance
+        t = np.dot(point, line_vector)
+        closest_point = t * line_vector
+        distance_to_line = np.linalg.norm(np.array(point) - closest_point)
+        if distance_to_line <= threshold and t > 0:
+            distance_to_origin = np.linalg.norm(point)
+            if distance_to_origin > max_distance:
+                furthest_point = point
+                max_distance = distance_to_origin
+    print('furthest point in direction', line_vector, 'is', furthest_point)
     return max_distance
+    # line_vector = np.array(line_vector, dtype=np.float64)
+    # tol = 1
+    # max_distance = -1
+    # for point in points:
+    #     distance_from_line = math_utils.distance_between_point_and_line(point, line_vector)
+    #     if abs(distance_from_line) < tol:
+    #         if mode == 0 and point[0] < 0:
+    #             continue
+    #         if mode == 1 and point[1] < 0:
+    #             continue
+    #         if mode == 2 and point[0] > 0:
+    #             continue
+    #         if mode == 3 and point[1] > 0:
+    #             continue
+    #         if mode == 4 and (point[0] < 0 or point[1] < 0):
+    #             continue
+    #         if mode == 5 and (point[0] < 0 or point[1] > 0):
+    #             continue
+    #         if mode == 6 and (point[0] > 0 or point[1] < 0):
+    #             continue
+    #         if mode == 7 and (point[0] > 0 or point[1] > 0):
+    #             continue
+    #         distance = np.sqrt(np.square(point[0]) + np.square(point[1]) + np.square(point[2]))
+    #         if distance > max_distance:
+    #             max_distance = distance
+    # return max_distance
 
 
-
-def calculate_distances_to_landmark_points(points):
+def calculate_distances_to_landmark_points(points, num_of_direction_vectors=8):
+    direction_vectors = math_utils.generate_direction_vectors(num_of_direction_vectors)
+    max_distance_points = []
+    for direction_vector in direction_vectors:
+        max_distance = get_furthest_point_in_direction(direction_vector, points, 0)
+        max_distance_points.append(max_distance)
+    return max_distance_points
     # distance in the x axis
-    line_vector = [1.0, 0.0, 0.0]
-    max_distance_x = get_furthest_point_in_direction(line_vector, points, 0)
-    # distance in the y axis
-    line_vector = [0.0, 1.0, 0.0]
-    max_distance_y = get_furthest_point_in_direction(line_vector, points, 1)
-    # distance in the -x axis
-    line_vector = [-1.0, 0.0, 0.0]
-    max_distance_minus_x = get_furthest_point_in_direction(line_vector, points, 2)
-    # distance in the -y axis
-    line_vector = [0.0, -1.0, 0.0]
-    max_distance_minus_y = get_furthest_point_in_direction(line_vector, points, 3)
-    # distance in the 1st quadrant
-    line_vector = [1 / np.sqrt(2), 1 / np.sqrt(2), 0.0]
-    max_distance_first = get_furthest_point_in_direction(line_vector, points, 4)
-    # distance in the 2nd quadrant
-    line_vector = [1 / np.sqrt(2), -1 / np.sqrt(2), 0.0]
-    max_distance_second = get_furthest_point_in_direction(line_vector, points, 5)
-    # distance in the 3rd quadrant
-    line_vector = [-1 / np.sqrt(2), 1 / np.sqrt(2), 0.0]
-    max_distance_third = get_furthest_point_in_direction(line_vector, points, 6)
-    # distance in the 4th quadrant
-    line_vector = [-1 / np.sqrt(2), -1 / np.sqrt(2), 0.0]
-    max_distance_fourth = get_furthest_point_in_direction(line_vector, points, 7)
-    return max_distance_x, max_distance_y, max_distance_minus_x, max_distance_minus_y, max_distance_first, max_distance_second, max_distance_third, max_distance_fourth
+    # line_vector = [1.0, 0.0, 0.0]
+    # max_distance_x = get_furthest_point_in_direction(line_vector, points, 0)
+    # # distance in the y axis
+    # line_vector = [0.0, 1.0, 0.0]
+    # max_distance_y = get_furthest_point_in_direction(line_vector, points, 1)
+    # # distance in the -x axis
+    # line_vector = [-1.0, 0.0, 0.0]
+    # max_distance_minus_x = get_furthest_point_in_direction(line_vector, points, 2)
+    # # distance in the -y axis
+    # line_vector = [0.0, -1.0, 0.0]
+    # max_distance_minus_y = get_furthest_point_in_direction(line_vector, points, 3)
+    # # distance in the 1st quadrant
+    # line_vector = [1 / np.sqrt(2), 1 / np.sqrt(2), 0.0]
+    # max_distance_first = get_furthest_point_in_direction(line_vector, points, 4)
+    # # distance in the 2nd quadrant
+    # line_vector = [1 / np.sqrt(2), -1 / np.sqrt(2), 0.0]
+    # max_distance_second = get_furthest_point_in_direction(line_vector, points, 5)
+    # # distance in the 3rd quadrant
+    # line_vector = [-1 / np.sqrt(2), 1 / np.sqrt(2), 0.0]
+    # max_distance_third = get_furthest_point_in_direction(line_vector, points, 6)
+    # # distance in the 4th quadrant
+    # line_vector = [-1 / np.sqrt(2), -1 / np.sqrt(2), 0.0]
+    # max_distance_fourth = get_furthest_point_in_direction(line_vector, points, 7)
+    # return max_distance_x, max_distance_y, max_distance_minus_x, max_distance_minus_y, max_distance_first, max_distance_second, max_distance_third, max_distance_fourth
 
 length = []
 # ugotovi najvecje stevilo cistern
@@ -198,9 +217,11 @@ for filename in os.listdir(data_directory):
     for cisterna_points in data:
         cis = data[cisterna_points]
         # izracunaj distanco do "landmark" tock za vsako cisterno
-        x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
+        # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
+        measurements = calculate_distances_to_landmark_points(cis)
         distances_index = int(len(distances) / max_cisternas_of_instance * index)
-        distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
+        # distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
+        distances[distances_index].append(measurements)
         index += 1
 # pogrupiraj distance med sabo
 final_list = []
