@@ -342,7 +342,7 @@ def align_cisternae_to_axis(cisterna):
     if cisterna.shape[0] < 3:
         print('cisterna too small, ignore it')
         return None
-    mean = np.mean(cisterna, axis=0)
+    mean = cisterna.mean(axis=0)
     # mean = np.array([int(mean[0]), int(mean[1]), int(mean[2])])
     centered_points = cisterna - mean
     centered_points = np.array(centered_points, dtype='float64')

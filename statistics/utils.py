@@ -144,11 +144,12 @@ def plot_kde(range, data):
 
 
 def plot_new_points(new_points):
-    matplotlib.use('TkAgg')
+    # matplotlib.use('TkAgg')
     fig = plt.figure()
-    ax = Axes3D(fig)
+    # ax = Axes3D(fig)
+    ax = fig.add_subplot(111, projection='3d')
     ax.plot(new_points[:, 0], new_points[:, 1], new_points[:, 2], 'yo')
-    ax.view_init(azim=-125, elev=-40)
+    # ax.view_init(azim=-125, elev=-40)
     plt.show()
 
 

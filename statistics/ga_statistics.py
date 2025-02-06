@@ -1,3 +1,4 @@
+import math
 import os
 
 import numpy as np
@@ -118,20 +119,23 @@ def extract_edge(cisterna):
     return np.array(cisterna_edge_points)
 
 
-def get_furthest_point_in_direction(line_vector, points, mode, threshold=1e-6):
+def get_furthest_point_in_direction(line_vector, points, threshold=1.0):
     line_vector = np.array(line_vector)
     max_distance = -float('inf')
     furthest_point = None
     for point in points:
-        t = np.dot(point, line_vector)
+        t = np.dot(np.array([point[0], point[1], 0]), line_vector)
         closest_point = t * line_vector
-        distance_to_line = np.linalg.norm(np.array(point) - closest_point)
+        distance_to_line = np.linalg.norm(np.array([point[0], point[1], 0]) - closest_point)
         if distance_to_line <= threshold and t > 0:
             distance_to_origin = np.linalg.norm(point)
             if distance_to_origin > max_distance:
                 furthest_point = point
                 max_distance = distance_to_origin
-    print('furthest point in direction', line_vector, 'is', furthest_point)
+    # if furthest_point is None:
+    #     print('no furthest point detected in direction', line_vector)
+    #     utils.plot_new_points(points)
+    # print('furthest point in direction', line_vector, 'is', furthest_point)
     return max_distance
     # line_vector = np.array(line_vector, dtype=np.float64)
     # tol = 1
@@ -165,7 +169,11 @@ def calculate_distances_to_landmark_points(points, num_of_direction_vectors=8):
     direction_vectors = math_utils.generate_direction_vectors(num_of_direction_vectors)
     max_distance_points = []
     for direction_vector in direction_vectors:
-        max_distance = get_furthest_point_in_direction(direction_vector, points, 0)
+        max_distance = get_furthest_point_in_direction(direction_vector, points)
+        if max_distance == -float('inf'):
+            max_distance = 0
+        if math.isnan(max_distance):
+            print()
         max_distance_points.append(max_distance)
     return max_distance_points
     # distance in the x axis
@@ -175,6 +183,8 @@ def calculate_distances_to_landmark_points(points, num_of_direction_vectors=8):
     # line_vector = [0.0, 1.0, 0.0]
     # max_distance_y = get_furthest_point_in_direction(line_vector, points, 1)
     # # distance in the -x axis
+    # # distance in the -x axis
+    # line_vector = [-1.0, 0.0, 0.0]
     # line_vector = [-1.0, 0.0, 0.0]
     # max_distance_minus_x = get_furthest_point_in_direction(line_vector, points, 2)
     # # distance in the -y axis
@@ -205,7 +215,7 @@ max_cisternas = max(length)
 for i in range(max_cisternas):
     distances.append([])
 
-
+num_of_distance_vectors = 12
 for filename in os.listdir(data_directory):
     data = np.load(data_directory + '/' + filename, allow_pickle=True)
     print('processing file', filename)
@@ -218,19 +228,21 @@ for filename in os.listdir(data_directory):
         cis = data[cisterna_points]
         # izracunaj distanco do "landmark" tock za vsako cisterno
         # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
-        measurements = calculate_distances_to_landmark_points(cis)
+        # print('processing cisterna')
+        measurements = calculate_distances_to_landmark_points(cis, num_of_distance_vectors)
         distances_index = int(len(distances) / max_cisternas_of_instance * index)
         # distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
         distances[distances_index].append(measurements)
         index += 1
 # pogrupiraj distance med sabo
 final_list = []
+final_list.append([length, num_of_distance_vectors])
 for i, cisterna_distances in enumerate(distances):
     transposed = list(zip(*cisterna_distances))
     result = [list(t) for t in transposed]
     final_list.append([])
     for r in result:
-        final_list[i].append(r)
+        final_list[i + 1].append(r)
 print('done')
 utils.save_ga_measurements_to_file('../measurements/measurements_ga.pkl', final_list)
 # average_object_points, points_dict = generate_average(length, distances)
