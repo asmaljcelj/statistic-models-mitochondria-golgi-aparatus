@@ -96,7 +96,7 @@ def perform_arc_length_parametrization_bezier_curve(n, points, num_points_on_the
         return bezier_curve, arc_length_parametrization, length
     else:
         print('not enough points to construct Bezier curve')
-        return None, None
+        return None, None, None
 
 
 if __name__ == '__main__':
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
             np_points = np.array(points)
 
-            whole_curve, approx = perform_arc_length_parametrization_bezier_curve(n, np_points, 10)
+            whole_curve, approx, length = perform_arc_length_parametrization_bezier_curve(n, np_points, 10)
             # char_points = [np_points[0]]
             # # če je v skeletonu premalo točk (manj kot n) -> zmanjšaj stopnjo Bezierjeve krivulje
             # if len(points) < n + 1:

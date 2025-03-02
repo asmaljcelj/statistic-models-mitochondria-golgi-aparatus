@@ -1,30 +1,33 @@
 import csv
+import os
+
 # import yaml
 import numpy as np
+import matplotlib.pyplot as plt
 
-path = '../ga_instances'
-
-data = {
-    '1': {
-        '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '1': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '2': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '3': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-    },
-    '2': {
-        '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '1': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '2': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '3': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-    },
-    '3': {
-        '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-    },
-    '4': {
-        '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-        '1': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
-    }
-}
+# path = '../ga_instances'
+#
+# data = {
+#     '1': {
+#         '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '1': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '2': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '3': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#     },
+#     '2': {
+#         '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '1': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '2': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '3': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#     },
+#     '3': {
+#         '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#     },
+#     '4': {
+#         '0': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#         '1': [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]],
+#     }
+# }
 
 # for i in range(4):
 #     with open('../ga_instances/' + str(i) + '.csv', 'w') as outfile:
@@ -57,15 +60,37 @@ data = {
 
 
 # Create a list of 2D numpy arrays
-array_2d_1 = np.array([[1, 2], [3, 4], [6, 7, 8]], dtype=object)
-array_2d_2 = np.array([[5, 6], [7, 8]])
-array_2d_3 = np.array([[9, 10], [11, 12]])
+# array_2d_1 = np.array([[1, 2], [3, 4], [6, 7, 8]], dtype=object)
+# array_2d_2 = np.array([[5, 6], [7, 8]])
+# array_2d_3 = np.array([[9, 10], [11, 12]])
+#
+# # List of 2D arrays
+# list_of_2d_arrays = [array_2d_1, array_2d_2, array_2d_3]
+#
+# # Create a 3D numpy array from the list of 2D arrays
+# array_3d = np.array(list_of_2d_arrays, dtype=object)
+#
+# # Print the 3D array
+# print(array_3d)
 
-# List of 2D arrays
-list_of_2d_arrays = [array_2d_1, array_2d_2, array_2d_3]
+import matplotlib
 
-# Create a 3D numpy array from the list of 2D arrays
-array_3d = np.array(list_of_2d_arrays, dtype=object)
+skeletons_folder = '../skeletons'
 
-# Print the 3D array
-print(array_3d)
+for filename in os.listdir(skeletons_folder):
+    file_path = skeletons_folder + '/' + filename
+    matplotlib.use('TkAgg')
+
+    with open(file_path) as csv_file:
+        points = []
+        reader = csv.reader(csv_file, delimiter=',')
+        for row in reader:
+            points.append([int(row[0]), int(row[1]), int(row[2])])
+        fig = plt.figure()
+        plt.title(filename)
+        ax = fig.add_subplot(111, projection='3d')
+        x = [p[0] for p in points]
+        y = [p[1] for p in points]
+        z = [p[2] for p in points]
+        ax.scatter(x, y, z)
+        plt.show()

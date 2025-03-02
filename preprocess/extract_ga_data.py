@@ -8,6 +8,21 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
 
+def plot_dataset_and_pca(dataset, vectors):
+    matplotlib.use('TkAgg')
+    x = [p[0] for p in dataset]
+    y = [p[1] for p in dataset]
+    z = [p[2] for p in dataset]
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.plot(x, y, z)
+    origin = np.array([0, 0, 0])
+    colors = ['r', 'g', 'b']
+    for i, vector in enumerate(vectors):
+        vector = vector * 10
+        ax.quiver(*origin, *vector, color=colors[i], arrow_length_ratio=0.1)
+    plt.show()
+
 def plot_points(points):
     points = np.array(points)
     matplotlib.use('TkAgg')
@@ -241,6 +256,7 @@ def read_files(instance_volume, filename, dataset):
     center = np.mean(dataset, axis=0)
     pca.fit(dataset)
     eig_vec = pca.components_
+    plot_dataset_and_pca(dataset, eig_vec)
     height = eig_vec[0]
     # length = eig_vec[1]
     # find lowest point
@@ -356,6 +372,10 @@ def align_cisternae_to_axis(cisterna):
     result = centered_points @ Vt.T
     # plot_original_and_aligned_cisterna(cisterna, result)
     return result
+
+
+def gpa_align(cisternae):
+    pass
 
 
 for filename in os.listdir(data_directory):

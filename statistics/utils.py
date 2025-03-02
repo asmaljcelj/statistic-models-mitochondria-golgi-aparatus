@@ -19,6 +19,7 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
     if num_of_points == number_of_plots:
         time.sleep(15)
         num_of_points = 0
+    matplotlib.use('TkAgg')
     bezier_curve = np.array(bezier_curve)
     arc_length_approx = np.array(arc_length_approx)
     num_of_points += 1
@@ -29,16 +30,16 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
         bezier_curve[:, 0],  # x-coordinates.
         bezier_curve[:, 1],  # y-coordinates.
         bezier_curve[:, 2],  # y-coordinates.
-        'o:',
-        label='Bezier curve'
+        'o:'
+        # label='Bezier curve'
     )
-    ax.plot(
-        arc_length_approx[:, 0],  # x-coordinates.
-        arc_length_approx[:, 1],  # y-coordinates.
-        arc_length_approx[:, 2],  # y-coordinates.
-        'ro:',  # Styling (red, circles, dotted).
-        label='Arc length parametrization'
-    )
+    # ax.plot(
+    #     arc_length_approx[:, 0],  # x-coordinates.
+    #     arc_length_approx[:, 1],  # y-coordinates.
+    #     arc_length_approx[:, 2],  # y-coordinates.
+    #     'ro:',  # Styling (red, circles, dotted).
+    #     label='Arc length parametrization'
+    # )
     # new calculated points
     # ax.plot(
     #     original_points[:, 0],  # x-coordinates.
@@ -53,8 +54,9 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
     ax.legend()
     ax.view_init(50, 20)
     plt.title(filename)
-    plt.savefig('../plots/' + filename + '.png')
-    plt.close()
+    # plt.savefig('../plots/' + filename + '.png')
+    # plt.close()
+    plt.show()
 
 
 def plot_bezier_curve(curve):
@@ -472,5 +474,6 @@ def retrieve_new_value_from_standard_derivation(sigma, data):
     sample = np.random.normal(0.5, sigma, 1)
     whole_std_interval = 2 * np.array(standard_deviation)
     return (average - standard_deviation) + sample * whole_std_interval
+
 
 
