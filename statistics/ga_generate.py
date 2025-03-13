@@ -114,6 +114,8 @@ def calculate_new_distances_for_cisterna(data, sigma):
     distances = []
     for cisterna_distances in data:
         value = utils.retrieve_new_value_from_standard_derivation(sigma, cisterna_distances)[0]
+        if value < 0:
+            value = 0
         distances.append(value)
     return distances
 
@@ -135,21 +137,24 @@ def generate_average(num_of_cisternas, distances, num_of_direction_vectors, sigm
     zero = populate_instances(average_distances_zero, [0, 0, 0], num_of_direction_vectors)
     final_object_dict[0] = zero
     final_object.extend(zero)
+    multiplicator = 1
     for i in range(1, num_of_cisternas - 1):
         # zdruzi
         starting_index = (i - 1) * num_per_stack + 1
         ending_index = i * num_per_stack
         combined_data = [[] for _ in range(len(distances[0]))]
         for j in range(starting_index, ending_index + 1):
+            if j >= len(distances):
+                break
             for k in range(0, len(distances[0])):
                 combined_data[k].extend(distances[j][k])
         combined_data = np.array(combined_data)
         # average_distances = math_utils.calculate_average_cisterna(combined_data)
         average_distances = calculate_new_distances_for_cisterna(combined_data, sigma)
-        points = populate_instances(average_distances, [0, 0, i], num_of_direction_vectors)
+        points = populate_instances(average_distances, [i * multiplicator, 0, 0], num_of_direction_vectors)
         final_object_dict[i] = points
         final_object.extend(points)
-    final = populate_instances(average_distances_max, [0, 0, num_of_cisternas - 1], num_of_direction_vectors)
+    final = populate_instances(average_distances_max, [(num_of_cisternas - 1) * multiplicator, 0, 0], num_of_direction_vectors)
     final_object_dict[num_of_cisternas - 1] = final
     final_object.extend(final)
     return np.array(final_object), final_object_dict
@@ -177,6 +182,7 @@ if __name__ == '__main__':
         value = float(args.length)
         sigma.length = value
     num_of_direction_vectors = meta_data[1]
+    num_cisternas = 45
     average_object_points, points_dict = generate_average(num_cisternas, data, num_of_direction_vectors, sigma.length)
     # plot_points(average_object_points)
     vertices, faces = generate_mesh(points_dict)

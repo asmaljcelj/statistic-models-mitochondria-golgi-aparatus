@@ -262,5 +262,5 @@ def generate_direction_vectors(n=8):
         angle = 2 * math.pi * i / n
         x = math.cos(angle)
         y = math.sin(angle)
-        vectors.append([x, y, 0])
+        vectors.append([0, y, x])
     return vectors

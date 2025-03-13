@@ -25,7 +25,7 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
     num_of_points += 1
     # PLOTTING
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(121, projection='3d')
     ax.plot(
         bezier_curve[:, 0],  # x-coordinates.
         bezier_curve[:, 1],  # y-coordinates.
@@ -33,27 +33,44 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
         'o:'
         # label='Bezier curve'
     )
-    # ax.plot(
-    #     arc_length_approx[:, 0],  # x-coordinates.
-    #     arc_length_approx[:, 1],  # y-coordinates.
-    #     arc_length_approx[:, 2],  # y-coordinates.
-    #     'ro:',  # Styling (red, circles, dotted).
-    #     label='Arc length parametrization'
-    # )
+    ax1 = fig.add_subplot(122, projection='3d')
+    ax1.plot(
+        arc_length_approx[:, 0],  # x-coordinates.
+        arc_length_approx[:, 1],  # y-coordinates.
+        arc_length_approx[:, 2],  # y-coordinates.
+        'ro:',  # Styling (red, circles, dotted).
+        label='Arc length parametrization'
+    )
+
+
     # new calculated points
     # ax.plot(
     #     original_points[:, 0],  # x-coordinates.
     #     original_points[:, 1],  # y-coordinates.
     #     original_points[:, 2],  # y-coordinates.
-    #     'yo:',  # Styling (yellow, circles, dotted).
-    #     label='Original skeleton'
+    #     'ro:',  # Styling (yellow, circles, dotted).
+    #     label='Original skeleton',
+    #     alpha=0.3
     # )
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    ax.legend()
-    ax.view_init(50, 20)
-    plt.title(filename)
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.set_zlabel('z')
+    # ax.legend()
+    # ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    ax1.grid(False)
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    ax1.set_zticks([])
+    plt.axis('off')
+    plt.grid(b=None)
+    ax.view_init(70, 150)
+    ax1.view_init(70, 150)
+    plt.rcParams['axes.grid'] = False
+    # plt.title(filename)
     # plt.savefig('../plots/' + filename + '.png')
     # plt.close()
     plt.show()

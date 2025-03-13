@@ -2,7 +2,10 @@ import math
 import os
 
 import numpy as np
+import trimesh
 from matplotlib import pyplot as plt
+from scipy.spatial import ConvexHull
+from scipy.spatial._qhull import QhullError
 
 import math_utils
 import utils
@@ -119,16 +122,16 @@ def extract_edge(cisterna):
     return np.array(cisterna_edge_points)
 
 
-def get_furthest_point_in_direction(line_vector, points, threshold=1.0):
+def get_furthest_point_in_direction(line_vector, points, origin, threshold=1.0):
     line_vector = np.array(line_vector)
     max_distance = -float('inf')
     furthest_point = None
     for point in points:
-        t = np.dot(np.array([point[0], point[1], 0]), line_vector)
+        t = np.dot(np.array([point[0], point[1], point[2]]), line_vector)
         closest_point = t * line_vector
-        distance_to_line = np.linalg.norm(np.array([point[0], point[1], 0]) - closest_point)
+        distance_to_line = np.linalg.norm(np.array([point[0], point[1], point[2]]) - closest_point)
         if distance_to_line <= threshold and t > 0:
-            distance_to_origin = np.linalg.norm(point)
+            distance_to_origin = np.linalg.norm(point - origin)
             if distance_to_origin > max_distance:
                 furthest_point = point
                 max_distance = distance_to_origin
@@ -165,17 +168,42 @@ def get_furthest_point_in_direction(line_vector, points, threshold=1.0):
     # return max_distance
 
 
-def calculate_distances_to_landmark_points(points, num_of_direction_vectors=8):
+def calculate_distances_to_landmark_points(points, origin, num_of_direction_vectors=8):
     direction_vectors = math_utils.generate_direction_vectors(num_of_direction_vectors)
     max_distance_points = []
-    for direction_vector in direction_vectors:
-        max_distance = get_furthest_point_in_direction(direction_vector, points)
-        if max_distance == -float('inf'):
-            max_distance = 0
-        if math.isnan(max_distance):
-            print()
-        max_distance_points.append(max_distance)
-    return max_distance_points
+    try:
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection="3d")
+
+        # Plot defining corner points
+        # ax.plot(points.T[0], points.T[1], points.T[2], "ko")
+        hull = ConvexHull(points)
+        mesh = trimesh.Trimesh(vertices=points, faces=hull.simplices)
+        # for s in hull.simplices:
+        #     s = np.append(s, s[0])  # Here we cycle back to the first coordinate
+        #     ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
+        # ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
+        # plt.show()
+
+        for direction_vector in direction_vectors:
+            locations, _, _ = mesh.ray.intersects_location(
+                ray_origins=[origin], ray_directions=[direction_vector]
+            )
+            if locations.shape[0] > 0:
+                distances = np.linalg.norm(locations - origin)
+            # max_distance = get_furthest_point_in_direction(direction_vector, points, origin)
+            # if max_distance == -float('inf'):
+            #     max_distance = 0
+            # if math.isnan(max_distance):
+            #     print()
+                if distances < 0:
+                    print()
+                max_distance_points.append(distances)
+            else:
+                print()
+        return max_distance_points
+    except QhullError:
+        return [0 for _ in direction_vectors]
     # distance in the x axis
     # line_vector = [1.0, 0.0, 0.0]
     # max_distance_x = get_furthest_point_in_direction(line_vector, points, 0)
@@ -229,8 +257,10 @@ for filename in os.listdir(data_directory):
         # izracunaj distanco do "landmark" tock za vsako cisterno
         # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
         # print('processing cisterna')
-        measurements = calculate_distances_to_landmark_points(cis, num_of_distance_vectors)
-        distances_index = int(len(distances) / max_cisternas_of_instance * index)
+        mean = np.mean(cis, axis=0)
+        measurements = calculate_distances_to_landmark_points(cis, mean, num_of_distance_vectors)
+        # distances_index = int(len(distances) / max_cisternas_of_instance * index)
+        distances_index = np.linspace(0, len(distances) - 1, max_cisternas_of_instance).astype(int)[index]
         # distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
         distances[distances_index].append(measurements)
         index += 1

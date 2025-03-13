@@ -56,7 +56,7 @@ def bezier_nth_order_and_parametrization(n, points, num_of_points_on_curve):
     length = 0
     # calculate length of the curve
     for i in range(len(points) - 1):
-        length += math.dist(points[0], points[1])
+        length += math.dist(points[i], points[i + 1])
     # Cubic interpolator
     # calculate derivative at t = 0 and t = 1
     t0_deriv_scaled = math_utils.magnitude(calculate_bezier_derivative(n, points, 0)) / length
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
             np_points = np.array(points)
 
-            whole_curve, approx, length = perform_arc_length_parametrization_bezier_curve(n, np_points, 10)
+            whole_curve, approx, length = perform_arc_length_parametrization_bezier_curve(n, np_points, 15)
             # char_points = [np_points[0]]
             # # če je v skeletonu premalo točk (manj kot n) -> zmanjšaj stopnjo Bezierjeve krivulje
             # if len(points) < n + 1:
