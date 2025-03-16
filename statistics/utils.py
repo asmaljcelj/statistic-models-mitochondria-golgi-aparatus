@@ -1,5 +1,6 @@
 import csv
 import math
+import random
 import time
 from collections import Counter
 
@@ -12,6 +13,55 @@ from mpl_toolkits.mplot3d import Axes3D
 import math_utils
 
 import pickle
+
+
+
+
+
+def plot_vectors_and_points(point1, point2, point3, vector1, vector2, vector3, object_points):
+    vector1 = math_utils.normalize(vector1) * 2
+    vector2 = math_utils.normalize(vector2) * 2
+    vector3 = math_utils.normalize(vector3) * 2
+    voxels_plane = math_utils.get_voxel_on_plane(object_points, point1, vector2, epsilon=0.5)
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(voxels_plane[:, 0], voxels_plane[:, 1], voxels_plane[:, 2], alpha=0.5, c='pink')
+    ax.scatter(point1[0], point1[1], point1[2], c='black')
+    ax.scatter(point2[0], point2[1], point2[2], c='yellow')
+    ax.scatter(point3[0], point3[1], point3[2], c='red')
+    ax.quiver(*point1, *vector1, color='yellow', arrow_length_ratio=0.1)
+    ax.quiver(*point1, *vector2, color='red', arrow_length_ratio=0.1)
+    ax.quiver(*point1, *vector3, color='blue', arrow_length_ratio=0.1)
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    plt.axis('off')
+    plt.grid(b=None)
+    plt.show()
+
+
+def plot_vectors_and_points_vector_rotation(point1, original_vector, normal, rotated_vector, object_points):
+    original_vector = math_utils.normalize(original_vector) * 5
+    rotated_vector = math_utils.normalize(rotated_vector) * 5
+    # normal = math_utils.normalize(normal) * 5
+    voxels_plane = math_utils.get_voxel_on_plane(object_points, point1, normal, epsilon=0.5)
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(voxels_plane[:, 0], voxels_plane[:, 1], voxels_plane[:, 2], alpha=0.5, c='pink')
+    ax.scatter(point1[0], point1[1], point1[2], c='black')
+    # ax.quiver(*point1, *normal, color='yellow', arrow_length_ratio=0.1)
+    ax.quiver(*point1, *original_vector, color='red', arrow_length_ratio=0.1)
+    ax.quiver(*point1, *rotated_vector, color='blue', arrow_length_ratio=0.1)
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    plt.axis('off')
+    plt.grid(b=None)
+    plt.show()
 
 
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
@@ -98,7 +148,13 @@ def plot_3d(points):
     z = [p[2] for p in points]
     fig = plt.figure()
     ax = Axes3D(fig)
-    ax.plot(x, y, z)
+    ax.scatter(x, y, z)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    plt.axis('off')
+    plt.grid(b=None)
     plt.show()
 
 
@@ -493,4 +549,44 @@ def retrieve_new_value_from_standard_derivation(sigma, data):
     return (average - standard_deviation) + sample * whole_std_interval
 
 
+def plot_histograms_for_data(skeletons, start, end, curvature, torsion, lengths):
+    fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(30, 15))
+    ax[0, 0].set_title('Skeleton', fontsize='30')
+    ax[0, 0].hist(skeletons[1][3], bins=10, color='skyblue', edgecolor='black')
+    random_key = random.choice(list(start.keys()))
+    ax[0, 1].set_title('Začetek', fontsize='30')
+    ax[0, 1].hist(start[random_key], bins=10, color='skyblue', edgecolor='black')
+    ax[0, 2].set_title('Konec', fontsize='30')
+    ax[0, 2].hist(end[random_key], bins=10, color='skyblue', edgecolor='black')
+    ax[1, 0].set_title('Ukrivljenost', fontsize='30')
+    ax[1, 0].hist(curvature[11], bins=10, color='skyblue', edgecolor='black')
+    ax[1, 1].set_title('Torzija', fontsize='30')
+    ax[1, 1].hist(torsion[11], bins=10, color='skyblue', edgecolor='black')
+    ax[1, 2].set_title('Dolžina skeletona', fontsize='30')
+    ax[1, 2].hist(lengths, bins=10, color='skyblue', edgecolor='black')
+    plt.show()
 
+
+def plot_generated_skeleton_points(previous_points, T, N, B, new_point, new_T, new_N, new_B):
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    previous_points = np.array(previous_points)
+    T = np.array(T)
+    N = np.array(N) * 0.05
+    B = np.array(B) * 0.05
+    ax.plot(previous_points[-2:, 0], previous_points[-2:, 1], previous_points[-2:, 2], c='pink')
+    ax.scatter(previous_points[-2:, 0], previous_points[-2:, 1], previous_points[-2:, 2], c='pink')
+    ax.scatter(new_point[0], new_point[1], new_point[2], c='black')
+    # ax.quiver(*point1, *normal, color='yellow', arrow_length_ratio=0.1)
+    ax.quiver(*previous_points[-1], *T, color='red', arrow_length_ratio=0.005)
+    ax.quiver(*previous_points[-1], *N, color='blue', arrow_length_ratio=0.005)
+    ax.quiver(*previous_points[-1], *B, color='green', arrow_length_ratio=0.005)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    plt.axis('off')
+    plt.grid(b=None)
+    plt.show()
+    print()

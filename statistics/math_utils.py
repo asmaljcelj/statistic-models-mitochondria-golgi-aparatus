@@ -264,3 +264,11 @@ def generate_direction_vectors(n=8):
         y = math.sin(angle)
         vectors.append([0, y, x])
     return vectors
+
+
+def get_voxel_on_plane(voxels, point, normal, epsilon=1e-6):
+    coordinates = np.argwhere(voxels == 1)
+    x0, y0, z0 = point
+    A, B, C = normal
+    distances = A * (coordinates[:, 0] - x0) + B * (coordinates[:, 1] - y0) + C * (coordinates[:, 2] - z0)
+    return coordinates[np.abs(distances) < epsilon]

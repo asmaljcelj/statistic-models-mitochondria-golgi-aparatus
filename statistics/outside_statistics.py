@@ -53,11 +53,14 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         # new_torsion = 0
         print('using values', new_curvature, new_torsion, 'for curvature and torsion at index', index)
         solution = math_utils.calculate_next_skeleton_point(skeleton_points[-1], T, N, B, new_curvature, new_torsion, total_skeleton_length / len(curvature))[1]
+        old_T, old_N, old_B = T, N, B
         # update T. N and B
         T = [solution[3], solution[4], solution[5]]
         N = [solution[6], solution[7], solution[8]]
         B = [solution[9], solution[10], solution[11]]
         new_skeleton_point = [solution[0], solution[1], solution[2]]
+        if index == len(curvature) - 1:
+            utils.plot_generated_skeleton_points(skeleton_points, T, N, B, new_skeleton_point, old_T, old_T, old_T)
         skeleton_points = np.append(skeleton_points, [new_skeleton_point], axis=0)
         if index not in skeleton_distances:
             continue
@@ -402,5 +405,6 @@ if __name__ == '__main__':
     if args.length:
         lengths = [float(args.length)]
     print('using sigma values:', sigma)
+    # utils.plot_histograms_for_data(skeleton, start, end, curvature, torsions, lengths)
     sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, sigma=sigma)
 

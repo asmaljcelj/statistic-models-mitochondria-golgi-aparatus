@@ -37,16 +37,18 @@ def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
 
 
 # todo: neki cudno sampla tudi izven BB-ja???????? (treba popravit)
-def sample_rays(origin, direction_vector, shape, base_vector, angle_increment=1):
+def sample_rays(origin, direction_vector, shape, base_vector, object_points, angle_increment=5):
     original_direction_vector = direction_vector
     distances, sampled_points = [], {}
     angle = 0
     while angle < 360:
+        current_direction_vector = direction_vector
         angle += angle_increment
         distance, sampled_points_a = iterate_ray(origin, direction_vector, shape)
         distances.append([distance, angle])
         sampled_points[angle] = sampled_points_a
         direction_vector = math_utils.rotate_vector(original_direction_vector, angle, base_vector)
+        # utils.plot_vectors_and_points_vector_rotation(origin, current_direction_vector, base_vector, direction_vector, object_points)
     return distances
 
 
@@ -92,7 +94,7 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
 
 def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, object_points, angle_increment=1):
     skleton_distances = {}
-    _, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
+    bezier_curve, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
     # print('length=', length)
     # utils.plot_bezier_curve(arc)
     if arc is not None:
@@ -103,13 +105,14 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
             vector_to_next_point = math_utils.normalize(next_point - current_point)
             vector_to_previous_point = math_utils.normalize(previous_point - current_point)
             normal = np.cross(vector_to_next_point, vector_to_previous_point)
+            # utils.plot_vectors_and_points(current_point, next_point, previous_point, vector_to_next_point, vector_to_previous_point, normal, object_points)
             if np.any(np.isnan(normal)):
                 return None, None, None
             normal = math_utils.normalize(normal)
-            skleton_distances[i] = sample_rays(current_point, normal, object_points, vector_to_next_point, angle_increment)
+            skleton_distances[i] = sample_rays(current_point, normal, object_points, vector_to_next_point, object_points, angle_increment)
         distances_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
         distances_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
-        skeleton_curvature, skeleton_torsion = calculate_skeleton_curvature_and_torsion(n, arc, num_of_points)
+        skeleton_curvature, skeleton_torsion = calculate_skeleton_curvature_and_torsion(n, bezier_curve, num_of_points)
     return skleton_distances, distances_start, distances_end, skeleton_curvature, length, skeleton_torsion
 
 
