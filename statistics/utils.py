@@ -3,12 +3,16 @@ import math
 import random
 import time
 from collections import Counter
+from tabnanny import check
 
 import matplotlib
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+from networkx.algorithms.distance_measures import center
+from scipy.spatial import cKDTree
+from trimesh.graph import neighbors
 
 import math_utils
 
@@ -142,19 +146,19 @@ def plot_bezier_curve(curve):
 
 
 def plot_3d(points):
-    matplotlib.use('TkAgg')
+    # matplotlib.use('TkAgg')
     x = [p[0] for p in points]
     y = [p[1] for p in points]
     z = [p[2] for p in points]
     fig = plt.figure()
-    ax = Axes3D(fig)
+    ax = fig.add_subplot(111, projection='3d')
     ax.scatter(x, y, z)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    ax.grid(False)
-    plt.axis('off')
-    plt.grid(b=None)
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    # ax.set_zticks([])
+    # ax.grid(False)
+    # plt.axis('off')
+    # plt.grid(b=None)
     plt.show()
 
 
@@ -224,6 +228,17 @@ def plot_new_points(new_points):
     # ax = Axes3D(fig)
     ax = fig.add_subplot(111, projection='3d')
     ax.plot(new_points[:, 0], new_points[:, 1], new_points[:, 2], 'yo')
+    # ax.view_init(azim=-125, elev=-40)
+    plt.show()
+
+
+def plot_2_sets_of_points(old_points, new_points):
+    # matplotlib.use('TkAgg')
+    fig = plt.figure()
+    # ax = Axes3D(fig)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(old_points[:, 0], old_points[:, 1], old_points[:, 2], 'go')
+    ax.scatter(new_points[:, 0], new_points[:, 1], new_points[:, 2], 'yo')
     # ax.view_init(azim=-125, elev=-40)
     plt.show()
 
@@ -590,3 +605,77 @@ def plot_generated_skeleton_points(previous_points, T, N, B, new_point, new_T, n
     plt.grid(b=None)
     plt.show()
     print()
+
+
+def cisterna_volume_extraction(cisterna_points):
+    plot_3d(cisterna_points)
+    current_volume_points = cisterna_points.copy()
+    centers = []
+    grouped_points = {}
+    while len(current_volume_points) > 0:
+        new_volume_points = []
+        for point in current_volume_points:
+            tree = cKDTree(current_volume_points)
+            neighbors = tree.query_ball_point(point, 1.5)
+            # if points has no neighbors, we found the center
+            if len(neighbors) == 1:
+                centers.append(point)
+            # if point has 3 neighbors, that point is not on the edge, so preserve it (also check if it has neighbors in opposite directions)
+            if len(neighbors) >= 4 and check_if_voxel_inside(neighbors, current_volume_points, point):
+                new_volume_points.append(point)
+        current_volume_points = np.array(new_volume_points)
+    if len(centers) == 0:
+        mean = np.mean(cisterna_points)
+        grouped_points[mean] = cisterna_points
+    else:
+        # for every center, calculate points that belong to it
+        pass
+    return grouped_points
+
+
+def check_if_voxel_inside(neighbors, points, current_point):
+    x, y, z = current_point
+    neighbors_points = [list(points[i]) for i  in neighbors if not np.array_equal(points[i], current_point)]
+    if [x - 1, y, z] in neighbors_points and [x + 1, y, z] in neighbors_points:
+        return True
+    if [x, y - 1, z] in neighbors_points and [x, y + 1, z] in neighbors_points:
+        return True
+    if [x, y, z - 1] in neighbors_points and [x, y, z + 1] in neighbors_points:
+        return True
+    # 4 diagonale
+    if [x - 1, y - 1, z + 1] in neighbors_points and [x + 1, y + 1, z - 1] in neighbors_points:
+        return True
+    if [x - 1, y - 1, z - 1] in neighbors_points and [x + 1, y + 1, z + 1] in neighbors_points:
+        return True
+    if [x + 1, y - 1, z - 1] in neighbors_points and [x - 1, y + 1, z + 1] in neighbors_points:
+        return True
+    if [x + 1, y + 1, z - 1] in neighbors_points and [x - 1, y - 1, z + 1] in neighbors_points:
+        return True
+    # rob
+    if [x, y - 1, z - 1] in neighbors_points and [x, y + 1, z + 1] in neighbors_points:
+        return True
+    if [x + 1, y, z - 1] in neighbors_points and [x - 1, y, z + 1] in neighbors_points:
+        return True
+    if [x, y + 1, z - 1] in neighbors_points and [x, y - 1, z + 1] in neighbors_points:
+        return True
+    if [x - 1, y, z - 1] in neighbors_points and [x + 1, y, z + 1] in neighbors_points:
+        return True
+    # rob diagonala
+    if [x - 1, y - 1, z] in neighbors_points and [x + 1, y + 1, z] in neighbors_points:
+        return True
+    if [x + 1, y - 1, z] in neighbors_points and [x - 1, y + 1, z] in neighbors_points:
+        return True
+    return False
+
+def calculate_points_around_centers(centers, cisterna_points):
+    for center in centers:
+        get_points_around(cisterna_points, center)
+
+def get_points_around(cisterna_points, current_point):
+    list1 = []
+    x, y, z = current_point
+    l = [list(i) for i in cisterna_points]
+    p = [x, y, z + 1]
+    if p in l:
+        list1.append(p)
+

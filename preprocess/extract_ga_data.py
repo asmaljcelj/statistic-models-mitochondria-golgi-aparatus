@@ -7,7 +7,17 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from networkx.algorithms.bipartite.basic import color
 from sklearn.decomposition import PCA
+import scipy.ndimage as ndi
 
+def has_all_elements(array1, array2):
+    remaining = len(array1)
+    for i, e in enumerate(array1):
+        if e not in array2:
+            print('not present', e)
+            return False
+        remaining -= 1
+    print('remaining:', remaining)
+    return True
 
 def plot_dataset_and_pca(dataset, vectors):
     matplotlib.use('TkAgg')
@@ -226,26 +236,30 @@ def get_point_cloud(instance_points, instance_voxels):
 
 
 def extract_ga_instances(volume):
+    labeled, num_stacks = ndi.label(volume)
     # instance_volume hrani vrednosti, kateremu GA pripada voksel, ce 0 -> ne pripada nobenemu
     # covered_volume: vrednost 0 -> voksel se ni bil obdelan, 1 -> je ze bil obdelan
-    instance_volume, covered_volume, instantiated_volume = np.zeros(volume.shape), np.zeros(volume.shape), np.zeros(volume.shape)
-    current_instance = 1
+    # instance_volume, covered_volume, instantiated_volume = np.zeros(volume.shape), np.zeros(volume.shape), np.zeros(volume.shape)
+    # current_instance = 1
     ga_instances = {}
-    for x in range(len(instance_volume)):
-        for y in range(len(instance_volume[x])):
-            for z in range(len(instance_volume[x][y])):
-                if volume[x][y][z] == 1 and covered_volume[x][y][z] == 0:
-                    print('found new instance at', x, '-', y, '-', z)
-                    ga_instances[current_instance], covered_volume, instantiated_volume = get_entire_instance_2([x, y, z], volume, covered_volume, instantiated_volume)
-                    current_instance += 1
-    print('found', current_instance - 1, 'instances in this volume')
+    # for x in range(len(instance_volume)):
+    #     for y in range(len(instance_volume[x])):
+    #         for z in range(len(instance_volume[x][y])):
+    #             if volume[x][y][z] == 1 and covered_volume[x][y][z] == 0:
+    #                 print('found new instance at', x, '-', y, '-', z)
+    #                 ga_instances[current_instance], covered_volume, instantiated_volume = get_entire_instance_2([x, y, z], volume, covered_volume, instantiated_volume)
+    #                 current_instance += 1
+    # print('found', current_instance - 1, 'instances in this volume')
+    print('found', num_stacks, 'instances in this volume')
     ga_point_clouds = {}
-    for index in ga_instances:
-        print('instance', index, 'has', len(ga_instances[index]), 'voxels')
+    # for index in ga_instances:
+    #     print('instance', index, 'has', len(ga_instances[index]), 'voxels')
         # point_cloud = get_point_cloud(ga_instances[index], instance_volume)
         # ga_point_clouds[index] = point_cloud
         # print('instance', index, 'has', len(ga_point_clouds[index]), 'edge voxels')
         # print()
+    for i in range(num_stacks):
+        ga_instances[(i + 1)] = np.array(np.where(labeled == (i + 1))).T
     return ga_instances
 
 instances_folder = '../ga_instances'
@@ -299,7 +313,11 @@ def read_files(instance_volume, filename, dataset):
     while current_x_value <= highest_point[0]:
         # zberi piksle v posamezno cisterno
         filtered_points = dataset_aligned[np.round(dataset_aligned[:, 0]) == np.round(current_x_value)]
-        final_list.append(filtered_points)
+        final_points = []
+        for filtered_point in filtered_points:
+            original_point = eigenvectors @ filtered_point + mean
+            final_points.append(original_point)
+        final_list.append(np.array(final_points))
         current_x_value += 1
     # height = eig_vec[0]
     # length = eig_vec[1]
@@ -429,7 +447,7 @@ def align_cisterna(ga_object):
     pca.fit_transform(centered_points)
     matrix = pca.components_
     result = centered_points @ matrix
-    return result, matrix, centered_points
+    return result, matrix, mean
 
 
 for filename in os.listdir(data_directory):

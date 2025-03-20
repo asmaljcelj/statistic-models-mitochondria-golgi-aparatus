@@ -2,10 +2,13 @@ import math
 import os
 
 import numpy as np
+from scipy import ndimage
 import trimesh
 from matplotlib import pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.spatial._qhull import QhullError
+from scipy.spatial import cKDTree
+import matplotlib
 
 import math_utils
 import utils
@@ -167,23 +170,39 @@ def get_furthest_point_in_direction(line_vector, points, origin, threshold=1.0):
     #             max_distance = distance
     # return max_distance
 
+def transform(coords):
+    grid_size = np.max(coords, axis=0) + 1  # Add 1 to include max index
+
+    # Initialize a voxel grid with zeros
+    voxel_grid = np.zeros(grid_size, dtype=int)
+
+    # Set the specified coordinates to 1
+    voxel_grid[tuple(coords.T)] = 1
+    return voxel_grid
+
 
 def calculate_distances_to_landmark_points(points, origin, num_of_direction_vectors=8):
     direction_vectors = math_utils.generate_direction_vectors(num_of_direction_vectors)
     max_distance_points = []
+    matplotlib.use('TkAgg')
     try:
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111, projection="3d")
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
 
         # Plot defining corner points
-        # ax.plot(points.T[0], points.T[1], points.T[2], "ko")
+        ax.plot(points.T[0], points.T[1], points.T[2], "ko")
         hull = ConvexHull(points)
         mesh = trimesh.Trimesh(vertices=points, faces=hull.simplices)
-        # for s in hull.simplices:
-        #     s = np.append(s, s[0])  # Here we cycle back to the first coordinate
-        #     ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
-        # ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
-        # plt.show()
+        for s in hull.simplices:
+            s = np.append(s, s[0])  # Here we cycle back to the first coordinate
+            ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
+        ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
+        ax.quiver(*origin, *direction_vectors[0], color='black')
+        l, _, _ = mesh.ray.intersects_location(
+            ray_origins=[origin], ray_directions=[direction_vectors[0]]
+        )
+        ax.scatter([l[0][0]], [l[0][1]], [l[0][2]], color='orange')
+        plt.show()
 
         for direction_vector in direction_vectors:
             locations, _, _ = mesh.ray.intersects_location(
@@ -252,11 +271,19 @@ for filename in os.listdir(data_directory):
     # plot_instance(edge_points)
     max_cisternas_of_instance = len(data)
     index = 0
+    # utils.plot_3d(data[cisterna_points])
     for cisterna_points in data:
         cis = data[cisterna_points]
+        cis = np.array([np.array(lst).astype(int) for lst in cis], dtype=int)
         # izracunaj distanco do "landmark" tock za vsako cisterno
         # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
         # print('processing cisterna')
+        centers = utils.cisterna_volume_extraction(cis)
+        # todo: za vsak center izracunaj Convex hull??? in naredi meritev
+        # utils.plot_3d(cis)
+        # grid = transform(cis)
+        # new_image = ndimage.binary_erosion(grid).astype(grid.dtype)
+        # utils.plot_2_sets_of_points(cis, new_image)
         mean = np.mean(cis, axis=0)
         measurements = calculate_distances_to_landmark_points(cis, mean, num_of_distance_vectors)
         # distances_index = int(len(distances) / max_cisternas_of_instance * index)
