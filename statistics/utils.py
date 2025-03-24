@@ -608,7 +608,7 @@ def plot_generated_skeleton_points(previous_points, T, N, B, new_point, new_T, n
 
 
 def cisterna_volume_extraction(cisterna_points):
-    plot_3d(cisterna_points)
+    # plot_3d(cisterna_points)
     current_volume_points = cisterna_points.copy()
     centers = []
     grouped_points = {}
@@ -616,12 +616,13 @@ def cisterna_volume_extraction(cisterna_points):
         new_volume_points = []
         for point in current_volume_points:
             tree = cKDTree(current_volume_points)
-            neighbors = tree.query_ball_point(point, 1.5)
+            neighbors = tree.query_ball_point(point, 1.8)
             # if points has no neighbors, we found the center
             if len(neighbors) == 1:
                 centers.append(point)
             # if point has 3 neighbors, that point is not on the edge, so preserve it (also check if it has neighbors in opposite directions)
-            if len(neighbors) >= 4 and check_if_voxel_inside(neighbors, current_volume_points, point):
+            # if len(neighbors) >= 3 and check_if_voxel_inside(neighbors, current_volume_points, point):
+            if check_if_voxel_inside(neighbors, current_volume_points, point):
                 new_volume_points.append(point)
         current_volume_points = np.array(new_volume_points)
     if len(centers) == 0:
@@ -629,7 +630,11 @@ def cisterna_volume_extraction(cisterna_points):
         grouped_points[mean] = cisterna_points
     else:
         # for every center, calculate points that belong to it
-        pass
+        grouped_points = calculate_points_around_centers(centers, cisterna_points)
+    if len(grouped_points.keys()) > 1:
+        print()
+        plot_grouped_points(grouped_points)
+        print()
     return grouped_points
 
 
@@ -649,7 +654,7 @@ def check_if_voxel_inside(neighbors, points, current_point):
         return True
     if [x + 1, y - 1, z - 1] in neighbors_points and [x - 1, y + 1, z + 1] in neighbors_points:
         return True
-    if [x + 1, y + 1, z - 1] in neighbors_points and [x - 1, y - 1, z + 1] in neighbors_points:
+    if [x + 1, y - 1, z + 1] in neighbors_points and [x - 1, y + 1, z - 1] in neighbors_points:
         return True
     # rob
     if [x, y - 1, z - 1] in neighbors_points and [x, y + 1, z + 1] in neighbors_points:
@@ -668,14 +673,44 @@ def check_if_voxel_inside(neighbors, points, current_point):
     return False
 
 def calculate_points_around_centers(centers, cisterna_points):
+    tree = cKDTree(cisterna_points)
+    points_to_examine = {}
+    points_assigned_to_center = {}
     for center in centers:
-        get_points_around(cisterna_points, center)
+        points_to_examine[tuple(center)] = [center]
+        points_assigned_to_center[tuple(center)] = []
+    while all(len(points_to_examine[c]) != 0 for c in points_to_examine):
+        for c in points_to_examine:
+            new_points_to_examine = []
+            for point in points_to_examine[c]:
+                neighbors = tree.query_ball_point(point, 1.8)
+                for neighbor in neighbors:
+                    p = cisterna_points[neighbor]
+                    if not any(np.array_equal(p, arr) for group in points_assigned_to_center.values() for arr in group):
+                        points_assigned_to_center[c].append(p)
+                        new_points_to_examine.append(p)
+            points_to_examine[c] = new_points_to_examine
+    return points_assigned_to_center
 
-def get_points_around(cisterna_points, current_point):
-    list1 = []
-    x, y, z = current_point
-    l = [list(i) for i in cisterna_points]
-    p = [x, y, z + 1]
-    if p in l:
-        list1.append(p)
 
+def plot_grouped_points(grouped_points):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    colors = plt.cm.jet(np.linspace(0, 1, len(grouped_points)))
+
+    for (center, points), color in zip(grouped_points.items(), colors):
+        center = np.array(center)
+        points = np.array(points)
+
+        # Plot center with a larger marker
+        ax.scatter(*center, color=color, marker='o', s=100, edgecolor='black', label=f'Center {center}')
+
+        # Plot points with the same color
+        ax.scatter(points[:, 0], points[:, 1], points[:, 2], color=color, marker='o', alpha=0.7)
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    ax.legend()
+    plt.show()

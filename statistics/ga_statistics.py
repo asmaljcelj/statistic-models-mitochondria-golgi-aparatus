@@ -186,22 +186,22 @@ def calculate_distances_to_landmark_points(points, origin, num_of_direction_vect
     max_distance_points = []
     matplotlib.use('TkAgg')
     try:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection="3d")
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection="3d")
 
         # Plot defining corner points
-        ax.plot(points.T[0], points.T[1], points.T[2], "ko")
+        # ax.plot(points.T[0], points.T[1], points.T[2], "ko")
         hull = ConvexHull(points)
         mesh = trimesh.Trimesh(vertices=points, faces=hull.simplices)
-        for s in hull.simplices:
-            s = np.append(s, s[0])  # Here we cycle back to the first coordinate
-            ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
-        ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
-        ax.quiver(*origin, *direction_vectors[0], color='black')
+        # for s in hull.simplices:
+        #     s = np.append(s, s[0])  # Here we cycle back to the first coordinate
+        #     ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
+        # ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
+        # ax.quiver(*origin, *direction_vectors[0], color='black')
         l, _, _ = mesh.ray.intersects_location(
             ray_origins=[origin], ray_directions=[direction_vectors[0]]
         )
-        ax.scatter([l[0][0]], [l[0][1]], [l[0][2]], color='orange')
+        # ax.scatter([l[0][0]], [l[0][1]], [l[0][2]], color='orange')
         plt.show()
 
         for direction_vector in direction_vectors:
