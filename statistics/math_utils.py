@@ -256,13 +256,13 @@ def calculate_average_cisterna(cisterna):
     return [sum(sublist) / len(sublist) for sublist in cisterna]
 
 
-def generate_direction_vectors(n=8):
+def generate_direction_vectors(base, n=8):
     vectors = []
     for i in range(n):
         angle = 2 * math.pi * i / n
         x = math.cos(angle)
         y = math.sin(angle)
-        vectors.append([0, y, x])
+        vectors.append(base.T @ [0, y, x])
     return vectors
 
 

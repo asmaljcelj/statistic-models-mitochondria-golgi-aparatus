@@ -46,25 +46,27 @@ def plot_vectors_and_points(point1, point2, point3, vector1, vector2, vector3, o
     plt.show()
 
 
-def plot_vectors_and_points_vector_rotation(point1, original_vector, normal, rotated_vector, object_points):
-    original_vector = math_utils.normalize(original_vector) * 5
-    rotated_vector = math_utils.normalize(rotated_vector) * 5
+def plot_vectors_and_points_vector_rotation(direction_vectors, cis):
+    # original_vector = math_utils.normalize(original_vector) * 5
+    # rotated_vector = math_utils.normalize(rotated_vector) * 5
     # normal = math_utils.normalize(normal) * 5
-    voxels_plane = math_utils.get_voxel_on_plane(object_points, point1, normal, epsilon=0.5)
+    # voxels_plane = math_utils.get_voxel_on_plane(object_points, point1, normal, epsilon=0.5)
     matplotlib.use('TkAgg')
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(voxels_plane[:, 0], voxels_plane[:, 1], voxels_plane[:, 2], alpha=0.5, c='pink')
-    ax.scatter(point1[0], point1[1], point1[2], c='black')
+    ax.scatter(cis[:, 0], cis[:, 1], cis[:, 2], alpha=0.5, c='pink')
+    # ax.scatter(point1[0], point1[1], point1[2], c='black')
     # ax.quiver(*point1, *normal, color='yellow', arrow_length_ratio=0.1)
-    ax.quiver(*point1, *original_vector, color='red', arrow_length_ratio=0.1)
-    ax.quiver(*point1, *rotated_vector, color='blue', arrow_length_ratio=0.1)
-    ax.grid(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    plt.axis('off')
-    plt.grid(b=None)
+    # ax.quiver(*point1, *original_vector, color='red', arrow_length_ratio=0.1)
+    for v in direction_vectors:
+        v *= 5
+        ax.quiver(*[0, 0, 0], *v, color='blue', arrow_length_ratio=0.1)
+    # ax.grid(False)
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    # ax.set_zticks([])
+    # plt.axis('off')
+    # plt.grid(b=None)
     plt.show()
 
 
@@ -223,12 +225,18 @@ def plot_kde(range, data):
 
 
 def plot_new_points(new_points):
-    # matplotlib.use('TkAgg')
+    matplotlib.use('TkAgg')
     fig = plt.figure()
     # ax = Axes3D(fig)
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot(new_points[:, 0], new_points[:, 1], new_points[:, 2], 'yo')
+    ax.scatter(new_points[:, 0], new_points[:, 1], new_points[:, 2],  alpha=0.3)
     # ax.view_init(azim=-125, elev=-40)
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    plt.axis('off')
+    plt.grid(b=None)
     plt.show()
 
 
@@ -614,8 +622,8 @@ def cisterna_volume_extraction(cisterna_points):
     grouped_points = {}
     while len(current_volume_points) > 0:
         new_volume_points = []
+        tree = cKDTree(current_volume_points)
         for point in current_volume_points:
-            tree = cKDTree(current_volume_points)
             neighbors = tree.query_ball_point(point, 1.8)
             # if points has no neighbors, we found the center
             if len(neighbors) == 1:
@@ -626,15 +634,15 @@ def cisterna_volume_extraction(cisterna_points):
                 new_volume_points.append(point)
         current_volume_points = np.array(new_volume_points)
     if len(centers) == 0:
-        mean = np.mean(cisterna_points)
-        grouped_points[mean] = cisterna_points
+        mean = np.mean(cisterna_points, axis=0)
+        grouped_points[tuple(mean)] = cisterna_points
     else:
         # for every center, calculate points that belong to it
         grouped_points = calculate_points_around_centers(centers, cisterna_points)
-    if len(grouped_points.keys()) > 1:
-        print()
-        plot_grouped_points(grouped_points)
-        print()
+    # if len(grouped_points.keys()) > 1:
+    #     print()
+    #     plot_grouped_points(grouped_points)
+    #     print()
     return grouped_points
 
 
@@ -672,10 +680,14 @@ def check_if_voxel_inside(neighbors, points, current_point):
         return True
     return False
 
+
 def calculate_points_around_centers(centers, cisterna_points):
     tree = cKDTree(cisterna_points)
     points_to_examine = {}
     points_assigned_to_center = {}
+    # Determine array dimensions (max coordinate values)
+    max_x, max_y, max_z = np.max(cisterna_points, axis=0)
+    checked = np.zeros((max_x + 1, max_y + 1, max_z + 1), dtype=bool)
     for center in centers:
         points_to_examine[tuple(center)] = [center]
         points_assigned_to_center[tuple(center)] = []
@@ -686,9 +698,11 @@ def calculate_points_around_centers(centers, cisterna_points):
                 neighbors = tree.query_ball_point(point, 1.8)
                 for neighbor in neighbors:
                     p = cisterna_points[neighbor]
-                    if not any(np.array_equal(p, arr) for group in points_assigned_to_center.values() for arr in group):
+                    # if not any(np.array_equal(p, arr) for group in points_assigned_to_center.values() for arr in group):
+                    if not checked[p[0]][p[1]][p[2]]:
                         points_assigned_to_center[c].append(p)
                         new_points_to_examine.append(p)
+                        checked[p[0]][p[1]][p[2]] = True
             points_to_examine[c] = new_points_to_examine
     return points_assigned_to_center
 
@@ -713,4 +727,24 @@ def plot_grouped_points(grouped_points):
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
     ax.legend()
+    plt.show()
+
+
+def plot_points_and_vector(object_points, eigenvectors, direction_vectors):
+    vector1 = math_utils.normalize(vector1) * 2
+    vector2 = math_utils.normalize(vector2) * 2
+    vector3 = math_utils.normalize(vector3) * 2
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(object_points[:, 0], object_points[:, 1], object_points[:, 2], alpha=0.5, c='pink')
+    ax.quiver(*point1, *vector1, color='yellow', arrow_length_ratio=0.1)
+    ax.quiver(*point1, *vector2, color='red', arrow_length_ratio=0.1)
+    ax.quiver(*point1, *vector3, color='blue', arrow_length_ratio=0.1)
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    plt.axis('off')
+    plt.grid(b=None)
     plt.show()

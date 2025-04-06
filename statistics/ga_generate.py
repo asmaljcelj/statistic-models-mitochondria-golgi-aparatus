@@ -64,7 +64,11 @@ def generate_mesh(points):
 
 def populate_instances(distances, starting_point, num_of_direction_vectors):
     points = []
-    direction_vectors = math_utils.generate_direction_vectors(num_of_direction_vectors)
+    direction_vectors = math_utils.generate_direction_vectors(np.array(
+            [[1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]]),
+        num_of_direction_vectors)
     direction_vectors = np.array(direction_vectors)
     for i, direction_vector in enumerate(direction_vectors):
         distance = distances[i]
@@ -182,7 +186,7 @@ if __name__ == '__main__':
         value = float(args.length)
         sigma.length = value
     num_of_direction_vectors = meta_data[1]
-    num_cisternas = 45
+    num_cisternas = 10
     average_object_points, points_dict = generate_average(num_cisternas, data, num_of_direction_vectors, sigma.length)
     # plot_points(average_object_points)
     vertices, faces = generate_mesh(points_dict)

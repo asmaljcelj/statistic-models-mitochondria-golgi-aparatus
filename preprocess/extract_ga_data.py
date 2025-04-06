@@ -288,6 +288,7 @@ instances_folder = '../ga_instances'
 #         # new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
 #         # nib.save(new_image, extracted_data_directory + '/' + new_filename)
 
+
 def read_files(instance_volume, filename, dataset):
     # filename = filename.replace('.nii.gz', '')
     # all_cistarnae_points = {}
@@ -380,7 +381,7 @@ def read_files(instance_volume, filename, dataset):
     # plot_ga_instances(dataset, 0, 0, 0, 0, final_list)
     for i in range(len(final_list)):
         final_list[i] = np.array(final_list[i], dtype=object)
-    return final_list
+    return final_list, eigenvectors
 
 
 def get_plane_equation_parameters(normal, point_on_plane):
@@ -456,11 +457,12 @@ for filename in os.listdir(data_directory):
     nib_image = nib.load(relative_file_path)
     image_data = nib_image.get_fdata()
     ga_instances = extract_ga_instances(image_data)
-    all_ga_data = {}
+    all_ga_data, all_eigenvectors = {}, {}
     for instance in ga_instances:
         print('processing instance ', instance)
-        cisternae = read_files(image_data, filename, ga_instances[instance])
+        cisternae, eigenvectors = read_files(image_data, filename, ga_instances[instance])
         all_ga_data[instance] = cisternae
+        all_eigenvectors[instance] = eigenvectors
         print('done with cisternae extraction')
         # plot_ga_instances(None, None, None, None, None, cisternae)
         # new_list = []
@@ -482,6 +484,8 @@ for filename in os.listdir(data_directory):
         # data = [all_ga_data[d]]
         filename = '../ga_instances/' + new_filename + '_' + str(d)
         np.savez(filename, *all_ga_data[d])
+        filename += '_ev'
+        np.savez(filename, *all_eigenvectors[d])
     # save_files(nib_image, ga_instances, filename)
 
 

@@ -181,48 +181,54 @@ def transform(coords):
     return voxel_grid
 
 
-def calculate_distances_to_landmark_points(points, origin, num_of_direction_vectors=8):
-    direction_vectors = math_utils.generate_direction_vectors(num_of_direction_vectors)
-    max_distance_points = []
-    matplotlib.use('TkAgg')
-    try:
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111, projection="3d")
+# def calculate_distances_to_landmark_points(group, vectors, num_of_direction_vectors=8):
+def calculate_distances_to_landmark_points(group, direction_vectors):
+    # direction_vectors = math_utils.generate_direction_vectors(vectors, num_of_direction_vectors)
+    all_measurments = []
+    # matplotlib.use('TkAgg')
+    for origin in group:
+        max_distance_points = []
+        try:
+            points = group[origin]
+            # fig = plt.figure()
+            # ax = fig.add_subplot(111, projection="3d")
 
-        # Plot defining corner points
-        # ax.plot(points.T[0], points.T[1], points.T[2], "ko")
-        hull = ConvexHull(points)
-        mesh = trimesh.Trimesh(vertices=points, faces=hull.simplices)
-        # for s in hull.simplices:
-        #     s = np.append(s, s[0])  # Here we cycle back to the first coordinate
-        #     ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
-        # ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
-        # ax.quiver(*origin, *direction_vectors[0], color='black')
-        l, _, _ = mesh.ray.intersects_location(
-            ray_origins=[origin], ray_directions=[direction_vectors[0]]
-        )
-        # ax.scatter([l[0][0]], [l[0][1]], [l[0][2]], color='orange')
-        plt.show()
-
-        for direction_vector in direction_vectors:
-            locations, _, _ = mesh.ray.intersects_location(
-                ray_origins=[origin], ray_directions=[direction_vector]
+            # Plot defining corner points
+            # ax.plot(points.T[0], points.T[1], points.T[2], "ko")
+            hull = ConvexHull(points)
+            mesh = trimesh.Trimesh(vertices=points, faces=hull.simplices)
+            # for s in hull.simplices:
+            #     s = np.append(s, s[0])  # Here we cycle back to the first coordinate
+            #     ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
+            # ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
+            # ax.quiver(*origin, *direction_vectors[0], color='black')
+            l, _, _ = mesh.ray.intersects_location(
+                ray_origins=[origin], ray_directions=[direction_vectors[0]]
             )
-            if locations.shape[0] > 0:
-                distances = np.linalg.norm(locations - origin)
-            # max_distance = get_furthest_point_in_direction(direction_vector, points, origin)
-            # if max_distance == -float('inf'):
-            #     max_distance = 0
-            # if math.isnan(max_distance):
-            #     print()
-                if distances < 0:
+            # ax.scatter([l[0][0]], [l[0][1]], [l[0][2]], color='orange')
+            plt.show()
+
+            for direction_vector in direction_vectors:
+                locations, _, _ = mesh.ray.intersects_location(
+                    ray_origins=[origin], ray_directions=[direction_vector]
+                )
+                if locations.shape[0] > 0:
+                    distances = np.linalg.norm(locations - origin)
+                # max_distance = get_furthest_point_in_direction(direction_vector, points, origin)
+                # if max_distance == -float('inf'):
+                #     max_distance = 0
+                # if math.isnan(max_distance):
+                #     print()
+                    if distances < 0:
+                        print()
+                    max_distance_points.append(distances)
+                else:
                     print()
-                max_distance_points.append(distances)
-            else:
-                print()
-        return max_distance_points
-    except QhullError:
-        return [0 for _ in direction_vectors]
+            all_measurments.append(max_distance_points)
+        except QhullError:
+            # return [0 for _ in direction_vectors]
+            all_measurments.append([0 for _ in direction_vectors])
+    return all_measurments
     # distance in the x axis
     # line_vector = [1.0, 0.0, 0.0]
     # max_distance_x = get_furthest_point_in_direction(line_vector, points, 0)
@@ -264,7 +270,12 @@ for i in range(max_cisternas):
 
 num_of_distance_vectors = 12
 for filename in os.listdir(data_directory):
+    if '_ev' in filename:
+        continue
     data = np.load(data_directory + '/' + filename, allow_pickle=True)
+    ev_filename = filename.replace('.npz', '_ev.npz')
+    ev_data = np.load(data_directory + '/' + ev_filename, allow_pickle=True)
+    ev_data = np.array([ev_data[key] for key in ev_data])
     print('processing file', filename)
     # plot_instance(data)
     # edge_points = extract_edge_from_cisternae(data)
@@ -272,9 +283,13 @@ for filename in os.listdir(data_directory):
     max_cisternas_of_instance = len(data)
     index = 0
     # utils.plot_3d(data[cisterna_points])
-    for cisterna_points in data:
+    direction_vectors = math_utils.generate_direction_vectors(ev_data, num_of_distance_vectors)
+    print('processing', len(data), 'cisternas')
+    for i, cisterna_points in enumerate(data):
+        print('processing cisterna', i)
         cis = data[cisterna_points]
         cis = np.array([np.array(lst).astype(int) for lst in cis], dtype=int)
+        # utils.plot_vectors_and_points_vector_rotation(direction_vectors, cis)
         # izracunaj distanco do "landmark" tock za vsako cisterno
         # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
         # print('processing cisterna')
@@ -284,12 +299,13 @@ for filename in os.listdir(data_directory):
         # grid = transform(cis)
         # new_image = ndimage.binary_erosion(grid).astype(grid.dtype)
         # utils.plot_2_sets_of_points(cis, new_image)
-        mean = np.mean(cis, axis=0)
-        measurements = calculate_distances_to_landmark_points(cis, mean, num_of_distance_vectors)
+        # mean = np.mean(cis, axis=0)
+        # measurements = calculate_distances_to_landmark_points(centers, ev_data, num_of_distance_vectors)
+        measurements = calculate_distances_to_landmark_points(centers, direction_vectors)
         # distances_index = int(len(distances) / max_cisternas_of_instance * index)
         distances_index = np.linspace(0, len(distances) - 1, max_cisternas_of_instance).astype(int)[index]
         # distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
-        distances[distances_index].append(measurements)
+        distances[distances_index] += measurements
         index += 1
 # pogrupiraj distance med sabo
 final_list = []

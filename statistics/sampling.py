@@ -33,7 +33,7 @@ def sample_at_ends(end_point, second_point, shape, points_on_hemisphere):
         key = utils.dict_key_from_point(direction_vector)
         distances[key] = distance
         sampled_points_t[key] = sampled_points
-    return distances
+    return distances, sampled_points_t
 
 
 # todo: neki cudno sampla tudi izven BB-ja???????? (treba popravit)
@@ -49,7 +49,7 @@ def sample_rays(origin, direction_vector, shape, base_vector, object_points, ang
         sampled_points[angle] = sampled_points_a
         direction_vector = math_utils.rotate_vector(original_direction_vector, angle, base_vector)
         # utils.plot_vectors_and_points_vector_rotation(origin, current_direction_vector, base_vector, direction_vector, object_points)
-    return distances
+    return distances, sampled_points
 
 
 def iterate_ray(origin, direction_vector, shape):
@@ -97,6 +97,7 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
     bezier_curve, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
     # print('length=', length)
     # utils.plot_bezier_curve(arc)
+    points_to_plot = []
     if arc is not None:
         for i in range(1, len(arc) - 2):
             previous_point = arc[i - 1]
@@ -109,10 +110,15 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
             if np.any(np.isnan(normal)):
                 return None, None, None
             normal = math_utils.normalize(normal)
-            skleton_distances[i] = sample_rays(current_point, normal, object_points, vector_to_next_point, object_points, angle_increment)
-        distances_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
-        distances_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
+            skleton_distances[i], sampled_points = sample_rays(current_point, normal, object_points, vector_to_next_point, object_points, angle_increment)
+            points_to_plot += [item for sublist in sampled_points.values() for item in sublist]
+        distances_start, sampled_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
+        points_to_plot += [item for sublist in sampled_start.values() for item in sublist]
+        distances_end, sampled_endl = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
+        points_to_plot += [item for sublist in sampled_endl.values() for item in sublist]
         skeleton_curvature, skeleton_torsion = calculate_skeleton_curvature_and_torsion(n, bezier_curve, num_of_points)
+    points_to_plot = np.array(points_to_plot)
+    utils.plot_new_points(points_to_plot)
     return skleton_distances, distances_start, distances_end, skeleton_curvature, length, skeleton_torsion
 
 
@@ -144,6 +150,7 @@ if __name__ == '__main__':
         curvatures_all[filename] = skeleton_curvature
         torsions[filename] = torsion
         lengths.append(length)
+        # todo: plot sampled points
     skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, torsions)
     utils.save_measurements_to_file('../measurements/measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles, torsion)
     # outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)
