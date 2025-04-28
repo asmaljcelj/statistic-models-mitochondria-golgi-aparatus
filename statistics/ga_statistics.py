@@ -268,7 +268,7 @@ max_cisternas = max(length)
 for i in range(max_cisternas):
     distances.append([])
 
-num_of_distance_vectors = 12
+num_of_distance_vectors = 5
 for filename in os.listdir(data_directory):
     if '_ev' in filename:
         continue

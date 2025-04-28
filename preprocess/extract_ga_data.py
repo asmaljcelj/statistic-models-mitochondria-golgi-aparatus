@@ -41,21 +41,34 @@ def plot_dataset_moved_and_pca(dataset, aligned_dataset, vectors, mean):
     z = [p[2] for p in dataset]
     fig = plt.figure()
     # ax = Axes3D(fig)
-    ax = fig.add_subplot(projection='3d')
-    ax.plot(x, y, z)
+    ax = fig.add_subplot(121, projection='3d')
+    ax.scatter(x, y, z, c='orange')
     x_a = [p[0] for p in aligned_dataset]
     y_a = [p[1] for p in aligned_dataset]
     z_a = [p[2] for p in aligned_dataset]
-    ax.plot(x_a, y_a, z_a)
-    x_m = [p[0] for p in mean]
-    y_m = [p[1] for p in mean]
-    z_m = [p[2] for p in mean]
-    ax.plot(x_m, y_m, z_m)
-    origin = np.array([0, 0, 0])
-    colors = ['r', 'g', 'b']
-    for i, vector in enumerate(vectors):
-        vector = vector * 100
-        ax.quiver(*origin, *vector, color=colors[i], arrow_length_ratio=0.1)
+    ax1 = fig.add_subplot(122, projection='3d')
+    ax1.scatter(x_a, y_a, z_a, c='blue')
+    ax.view_init(43, -140)
+    ax1.view_init(43, -140)
+    # x_m = [p[0] for p in mean]
+    # y_m = [p[1] for p in mean]
+    # z_m = [p[2] for p in mean]
+    # ax.plot(x_m, y_m, z_m)
+    # origin = np.array([0, 0, 0])
+    # colors = ['r', 'g', 'b']
+    # for i, vector in enumerate(vectors):
+    #     vector = vector * 100
+    #     ax.quiver(*origin, *vector, color=colors[i], arrow_length_ratio=0.1)
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax1.grid(False)
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    ax1.set_zticks([])
+    plt.axis('off')
+    plt.grid(b=None)
     plt.show()
     print()
 
@@ -304,6 +317,7 @@ def read_files(instance_volume, filename, dataset):
     # eig_vec = pca.components_
     # plot_dataset_and_pca(dataset, eig_vec)
     dataset_aligned, eigenvectors, mean = align_cisterna(dataset)
+    centered_dataset = dataset - mean
     # plot_dataset_moved_and_pca(dataset, dataset_aligned, eigenvectors, mean)
     min_x_index = np.argmin(dataset_aligned[:, 0])
     lowest_point = dataset_aligned[min_x_index]
@@ -320,6 +334,8 @@ def read_files(instance_volume, filename, dataset):
             final_points.append(original_point)
         final_list.append(np.array(final_points))
         current_x_value += 1
+    # flattened = [inner for outer in final_list for inner in outer]
+    # plot_dataset_moved_and_pca(centered_dataset, dataset_aligned, None, None)
     # height = eig_vec[0]
     # length = eig_vec[1]
     # find lowest point
