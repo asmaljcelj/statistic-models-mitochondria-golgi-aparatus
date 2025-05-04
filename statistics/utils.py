@@ -148,7 +148,7 @@ def plot_bezier_curve(curve):
 
 
 def plot_3d(points):
-    # matplotlib.use('TkAgg')
+    matplotlib.use('TkAgg')
     x = [p[0] for p in points]
     y = [p[1] for p in points]
     z = [p[2] for p in points]
@@ -748,3 +748,12 @@ def plot_points_and_vector(object_points, eigenvectors, direction_vectors):
     plt.axis('off')
     plt.grid(b=None)
     plt.show()
+
+
+def create_3d_image(voxels):
+    min_coords = voxels.min(axis=0)
+    shifted_voxels = voxels - min_coords
+    shape = np.array((128, 128, 128))
+    volume = np.zeros(shape, dtype=np.uint8)
+    volume[tuple(shifted_voxels.T)] = 1
+    return volume

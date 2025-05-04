@@ -49,8 +49,11 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
             new_curvature = curvature[c][0]
         else:
             new_curvature = utils.retrieve_new_value_from_standard_derivation(sigma.curvature, curvature[c])[0]
-        new_torsion = utils.retrieve_new_value_from_standard_derivation(sigma.torsion, torsions[c])[0]
-        # new_torsion = 0
+        if len(torsions[c]) == 1:
+            new_torsion = torsions[c][0]
+        else:
+            new_torsion = utils.retrieve_new_value_from_standard_derivation(sigma.torsion, torsions[c])[0]
+        new_torsion = 0
         print('using values', new_curvature, new_torsion, 'for curvature and torsion at index', index)
         solution = math_utils.calculate_next_skeleton_point(skeleton_points[-1], T, N, B, new_curvature, new_torsion, total_skeleton_length / len(curvature))[1]
         old_T, old_N, old_B = T, N, B
@@ -59,8 +62,8 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
         N = [solution[6], solution[7], solution[8]]
         B = [solution[9], solution[10], solution[11]]
         new_skeleton_point = [solution[0], solution[1], solution[2]]
-        if index == len(curvature) - 1:
-            utils.plot_generated_skeleton_points(skeleton_points, T, N, B, new_skeleton_point, old_T, old_T, old_T)
+        # if index == len(curvature) - 1:
+        #     utils.plot_generated_skeleton_points(skeleton_points, T, N, B, new_skeleton_point, old_T, old_T, old_T)
         skeleton_points = np.append(skeleton_points, [new_skeleton_point], axis=0)
         if index not in skeleton_distances:
             continue
@@ -97,8 +100,8 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
     vertices, faces = generate_mesh(skeleton_outside_points, start_points_dict, end_points_dict)
     utils.generate_obj_file(vertices, faces, f'test.obj')
     tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
-    utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth.obj')
+    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=10)
+    utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth_2.obj')
 
 
 def generate_mesh(skeleton_points, start_points, end_points):
@@ -354,6 +357,7 @@ def create_parser():
     parser = argparse.ArgumentParser(description='Generate new mitochondria shape')
     parser.add_argument('-c', '--curvature', help='curvature of the generated shapes', nargs='*')
     parser.add_argument('-l', '--length', help='length of the generated shapes')
+    parser.add_argument('-t', '--torsion', help='torsion of the generated shapes', nargs='*')
     parser.add_argument('-sl', '--sigma-length', help='value of sigma for length')
     parser.add_argument('-ss', '--sigma-skeleton', help='value of sigma for skeleton points')
     parser.add_argument('-sst', '--sigma-start', help='value of sigma for start points')
@@ -369,7 +373,7 @@ def validate_sigma_parameter(sigma):
 
 
 if __name__ == '__main__':
-    curvature, start, end, skeleton, lengths, direction_with_angles, torsions = utils.read_measurements_from_file('../measurements/measurements.pkl')
+    curvature, start, end, skeleton, lengths, direction_with_angles, torsions = utils.read_measurements_from_file('../measurements/learn/measurements.pkl')
     parser = create_parser()
     args = parser.parse_args()
     if args.curvature:
@@ -378,6 +382,11 @@ if __name__ == '__main__':
         for i, values in curvature.items():
             curvature[i] = [float(args.curvature[i])]
     sigma = SigmaParameters()
+    if args.torsion:
+        if len(torsions.keys()) != len(args.torsion):
+            raise Exception('number of torsion values must match the number of characteristic points')
+        for i, values in curvature.items():
+            torsions[i] = [float(args.torsion[i])]
     if args.sigma_length:
         value = float(args.sigma_length)
         validate_sigma_parameter(value)
@@ -406,5 +415,7 @@ if __name__ == '__main__':
         lengths = [float(args.length)]
     print('using sigma values:', sigma)
     # utils.plot_histograms_for_data(skeleton, start, end, curvature, torsions, lengths)
+    # for i, values in torsions.items():
+    #     torsions[i] = [0]
     sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, sigma=sigma)
 

@@ -1,3 +1,4 @@
+import math
 import os
 
 import numpy as np
@@ -10,7 +11,7 @@ import utils
 
 def sample_direction_vectors(num_of_samples, skeleton_angle_increment=1):
     # zgleda OK!!
-    # np.random.seed(10)
+    np.random.seed(10)
     # source: http://blog.thomaspoulet.fr/uniform-sampling-on-unit-hemisphere/
     u_samples = np.random.uniform(0, 1, num_of_samples)
     v_samples = np.random.uniform(0, 1, num_of_samples)
@@ -58,6 +59,8 @@ def iterate_ray(origin, direction_vector, shape):
     previous_voxel, current_voxel = None, [int(origin[0]), int(origin[1]), int(origin[2])]
     while True:
         new_point = current_point + direction_vector
+        if math.isnan(new_point[0]) or math.isnan(new_point[1]) or math.isnan(new_point[2]):
+            print()
         x_coord, y_coord, z_coord = int(new_point[0]), int(new_point[1]), int(new_point[2])
         previous_voxel = current_voxel
         current_voxel = [x_coord, y_coord, z_coord]
@@ -97,7 +100,7 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
     bezier_curve, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
     # print('length=', length)
     # utils.plot_bezier_curve(arc)
-    points_to_plot = []
+    # points_to_plot = []
     if arc is not None:
         for i in range(1, len(arc) - 2):
             previous_point = arc[i - 1]
@@ -111,46 +114,96 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
                 return None, None, None
             normal = math_utils.normalize(normal)
             skleton_distances[i], sampled_points = sample_rays(current_point, normal, object_points, vector_to_next_point, object_points, angle_increment)
-            points_to_plot += [item for sublist in sampled_points.values() for item in sublist]
+            # points_to_plot += [item for sublist in sampled_points.values() for item in sublist]
         distances_start, sampled_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
-        points_to_plot += [item for sublist in sampled_start.values() for item in sublist]
-        distances_end, sampled_endl = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
-        points_to_plot += [item for sublist in sampled_endl.values() for item in sublist]
+        # points_to_plot += [item for sublist in sampled_start.values() for item in sublist]
+        distances_end, sampled_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
+        # points_to_plot += [item for sublist in sampled_endl.values() for item in sublist]
         skeleton_curvature, skeleton_torsion = calculate_skeleton_curvature_and_torsion(n, bezier_curve, num_of_points)
-    points_to_plot = np.array(points_to_plot)
-    utils.plot_new_points(points_to_plot)
+    # points_to_plot = np.array(points_to_plot)
+    # utils.plot_new_points(points_to_plot)
     return skleton_distances, distances_start, distances_end, skeleton_curvature, length, skeleton_torsion
 
 
-if __name__ == '__main__':
-    skeletons_folder = '../skeletons/'
-    num_of_skeleton_points, n, num_of_samples, num_files = 15, 5, 1000, 1
-    angle_increment = 3
-    if 360 % angle_increment != 0:
-        raise Exception('angle increment has to be a multiple of 360.')
+def measure(skeletons_folder, extracted_data_folder, testing_data, num_of_skeleton_points, n, direction_vectors, direction_with_angles):
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
-    direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
         skeleton_points = utils.read_file_collect_points(filename, skeletons_folder)
-        object_points = utils.read_nii_file('../extracted_data/', filename.replace('.csv', '.nii'))
+        object_points = utils.read_nii_file(extracted_data_folder, filename.replace('.csv', '.nii'))
         if skeleton_points is None:
             print('no points for file', filename)
             continue
-        distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
+        distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(n,
+                                                                                                            skeleton_points,
+                                                                                                            num_of_skeleton_points,
+                                                                                                            direction_vectors,
+                                                                                                            object_points,
+                                                                                                            angle_increment)
         if distances is None:
             new_n = n
             while distances is None:
                 new_n -= 1
                 print('try to form new distances with order', new_n)
-                distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(new_n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
+                distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(
+                    new_n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
         distances_skeleton_all[filename] = distances
         distances_start_all[filename] = distance_start
         distances_end_all[filename] = distance_end
         curvatures_all[filename] = skeleton_curvature
         torsions[filename] = torsion
         lengths.append(length)
-        # todo: plot sampled points
-    skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, torsions)
-    utils.save_measurements_to_file('../measurements/measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles, torsion)
+    if not testing_data:
+        skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all,
+                                                                     distances_end_all, curvatures_all, torsions)
+        utils.save_measurements_to_file('../measurements/learn/measurements.pkl', skeleton, start, end, curvature, lengths,
+                                    direction_with_angles, torsion)
+    else:
+        for filename in distances_skeleton_all:
+            distances_skeleton = distances_skeleton_all[filename]
+            distances_start = distances_start_all[filename]
+            distances_end = distances_end_all[filename]
+            curvatures = curvatures_all[filename]
+            torsion = torsions[filename]
+            name = 'measurements_' + filename
+            name = name.replace('.csv', '.nii')
+            utils.save_measurements_to_file('../measurements/testing/' + name, distances_skeleton, distances_start, distances_end, curvatures,
+                                            None,
+                                            direction_with_angles, torsion)
+
+
+if __name__ == '__main__':
+    skeletons_folder = '../skeletons/learn'
+    num_of_skeleton_points, n, num_of_samples, num_files = 15, 5, 1000, 1
+    angle_increment = 3
+    if 360 % angle_increment != 0:
+        raise Exception('angle increment has to be a multiple of 360.')
+    distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
+    direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
+    print('starting sampling learning group')
+    measure('../skeletons/learn/', '../extracted_data/learning/', False, num_of_skeleton_points, n, direction_vectors, direction_with_angles)
+    print('starting sampling testing group')
+    measure('../skeletons/test/', '../extracted_data/test/', True, num_of_skeleton_points, n, direction_vectors, direction_with_angles)
+    # for filename in os.listdir(skeletons_folder):
+    #     print('processing', filename)
+    #     skeleton_points = utils.read_file_collect_points(filename, skeletons_folder)
+    #     object_points = utils.read_nii_file('../extracted_data/learning', filename.replace('.csv', '.nii'))
+    #     if skeleton_points is None:
+    #         print('no points for file', filename)
+    #         continue
+    #     distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
+    #     if distances is None:
+    #         new_n = n
+    #         while distances is None:
+    #             new_n -= 1
+    #             print('try to form new distances with order', new_n)
+    #             distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(new_n, skeleton_points, num_of_skeleton_points, direction_vectors, object_points, angle_increment)
+    #     distances_skeleton_all[filename] = distances
+    #     distances_start_all[filename] = distance_start
+    #     distances_end_all[filename] = distance_end
+    #     curvatures_all[filename] = skeleton_curvature
+    #     torsions[filename] = torsion
+    #     lengths.append(length)
+    # skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, torsions)
+    # utils.save_measurements_to_file('../measurements/measurements.pkl', skeleton, start, end, curvature, lengths, direction_with_angles, torsion)
     # outside_statistics.sample_new_points(skeleton, start, end, curvature, num_files, direction_with_angles, lengths)

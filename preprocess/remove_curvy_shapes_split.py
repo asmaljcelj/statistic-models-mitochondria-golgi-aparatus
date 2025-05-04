@@ -1,6 +1,11 @@
 import os
+import shutil
 
 file_directory = '../extracted_data'
+learning_directory = '../extracted_data/learning'
+test_directory = '../extracted_data/test'
+
+split_percentage = 80
 
 # remove curvy mitochondria shapes (shapes that have more than 1 curve)
 # manual inspection performed
@@ -27,3 +32,16 @@ curvy_instances = [
 for filename in os.listdir(file_directory):
     if filename in curvy_instances:
         os.remove(os.path.join(file_directory, filename))
+
+nii_files = [f for f in os.listdir(file_directory) if f.endswith('.nii')]
+num_split = int(len(nii_files) * split_percentage / 100)
+index = 0
+
+for filename in os.listdir(file_directory):
+    if not filename.endswith('.nii'):
+        continue
+    if index < num_split:
+        shutil.copy(os.path.join(file_directory, filename), os.path.join(learning_directory, filename))
+    else:
+        shutil.copy(os.path.join(file_directory, filename), os.path.join(test_directory, filename))
+    index += 1
