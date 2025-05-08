@@ -70,6 +70,25 @@ def plot_vectors_and_points_vector_rotation(direction_vectors, cis):
     plt.show()
 
 
+def plot_3_base_vectors_and_direction_vectors(base1, base2, base3, direction_vectors):
+    matplotlib.use('TkAgg')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.quiver(*[0, 0, 0], *base1, color='red', arrow_length_ratio=0.1)
+    ax.quiver(*[0, 0, 0], *base2, color='green', arrow_length_ratio=0.1)
+    ax.quiver(*[0, 0, 0], *base3, color='yellow', arrow_length_ratio=0.1)
+    for v in direction_vectors:
+        ax.quiver(*[0, 0, 0], *v, color='blue', arrow_length_ratio=0.1, alpha=0.5)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    plt.axis('off')
+    plt.grid(b=None)
+    plt.rcParams['axes.grid'] = False
+    plt.show()
+
+
 def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_approx, number_of_plots, filename):
     # plot the result and save it
     if num_of_points == number_of_plots:
@@ -589,6 +608,17 @@ def plot_histograms_for_data(skeletons, start, end, curvature, torsion, lengths)
     ax[1, 2].hist(lengths, bins=10, color='skyblue', edgecolor='black')
     plt.show()
 
+def plot_histograms_for_ga_data(length, first_cisterna, last_cisterna):
+    matplotlib.use('TkAgg')
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(30, 15))
+    ax[0].set_title('Dolžine', fontsize='30')
+    ax[0].hist(length, bins=5, color='skyblue', edgecolor='black')
+    ax[1].set_title('1. cisterna', fontsize='30')
+    ax[1].hist(first_cisterna, bins=5, color='skyblue', edgecolor='black')
+    ax[2].set_title('Zadnja cisterna', fontsize='30')
+    ax[2].hist(last_cisterna, bins=5, color='skyblue', edgecolor='black')
+    plt.show()
+
 
 def plot_generated_skeleton_points(previous_points, T, N, B, new_point, new_T, new_N, new_B):
     matplotlib.use('TkAgg')
@@ -704,10 +734,17 @@ def calculate_points_around_centers(centers, cisterna_points):
                         new_points_to_examine.append(p)
                         checked[p[0]][p[1]][p[2]] = True
             points_to_examine[c] = new_points_to_examine
-    return points_assigned_to_center
+    # calculate new centers
+    final_points = {}
+    for c in points_assigned_to_center:
+        points = points_assigned_to_center[c]
+        mean = np.mean(points, axis=0)
+        final_points[tuple(mean)] = points
+    return final_points
 
 
 def plot_grouped_points(grouped_points):
+    matplotlib.use('TkAgg')
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 

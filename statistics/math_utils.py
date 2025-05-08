@@ -260,9 +260,11 @@ def generate_direction_vectors(base, n=8):
     vectors = []
     for i in range(n):
         angle = 2 * math.pi * i / n
-        x = math.cos(angle)
-        y = math.sin(angle)
-        vectors.append(base.T @ [0, y, x])
+        direction = np.cos(angle) * base[0] + np.sin(angle) * base[1]
+        # x = math.cos(angle)
+        # y = math.sin(angle)
+        # vectors.append(base.T @ [0, y, x])
+        vectors.append(normalize(direction))
     return vectors
 
 

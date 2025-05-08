@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
+import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
 from networkx.algorithms.bipartite.basic import color
 from sklearn.decomposition import PCA
@@ -277,29 +278,29 @@ def extract_ga_instances(volume):
 
 instances_folder = '../ga_instances'
 
-# def save_files(image_data, data, og_filename):
-#     print('saving files')
-#     counter = 1
-#     pca = PCA(n_components=2)
-#     for key in data:
-#         new_filename = og_filename[:og_filename.find('.')] + '_' + str(counter)
-#         # counter += 1
-#         voxels = data[key]
-#         # final_instance_object = np.zeros(image_data.shape)
-#         # for voxel in voxels:
-#         #     final_instance_object[voxel[0], voxel[1], voxel[2]] = 1
-#         np.savetxt('../ga_instances/' + new_filename + '.csv', voxels, delimiter=',', fmt='%-0d')
-#         dataset = pd.read_csv(instances_folder + '/' + new_filename + '.csv')
-#         pca.fit(dataset)
-#         eig_vec = pca.components_
-#         plot_ga_instances(data[key], eig_vec)
-#         # first_unit = eig_vec[0]
-#         # # for t in range(1, 15):
-#         # #     point = (t * first_unit[0], t * first_unit[1], t * first_unit[2])
-#         # #     final_instance_object[int(point[0])][int(point[1])][int(point[2])] = 120
-#         #
-#         # new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
-#         # nib.save(new_image, extracted_data_directory + '/' + new_filename)
+def save_files(image_data, data, og_filename):
+    print('saving files')
+    counter = 1
+    # pca = PCA(n_components=2)
+    for key in data:
+        new_filename = og_filename[:og_filename.find('.')] + '_' + str(counter)
+        counter += 1
+        voxels = data[key]
+        final_instance_object = np.zeros(image_data.shape)
+        for voxel in voxels:
+            final_instance_object[voxel[0], voxel[1], voxel[2]] = 1
+        np.savetxt('../ga_instances/' + new_filename + '.csv', voxels, delimiter=',', fmt='%-0d')
+        # dataset = pd.read_csv(instances_folder + '/' + new_filename + '.csv')
+        # pca.fit(dataset)
+        # eig_vec = pca.components_
+        # plot_ga_instances(data[key], eig_vec)
+        # first_unit = eig_vec[0]
+        # # for t in range(1, 15):
+        # #     point = (t * first_unit[0], t * first_unit[1], t * first_unit[2])
+        # #     final_instance_object[int(point[0])][int(point[1])][int(point[2])] = 120
+        #
+        new_image = nib.Nifti1Image(final_instance_object, image_data.affine)
+        nib.save(new_image, extracted_data_directory + '/' + new_filename)
 
 
 def read_files(instance_volume, filename, dataset):
@@ -319,9 +320,9 @@ def read_files(instance_volume, filename, dataset):
     dataset_aligned, eigenvectors, mean = align_cisterna(dataset)
     centered_dataset = dataset - mean
     # plot_dataset_moved_and_pca(dataset, dataset_aligned, eigenvectors, mean)
-    min_x_index = np.argmin(dataset_aligned[:, 0])
+    min_x_index = np.argmin(dataset_aligned[:, 2])
     lowest_point = dataset_aligned[min_x_index]
-    max_x_index = np.argmax(dataset_aligned[:, 0])
+    max_x_index = np.argmax(dataset_aligned[:, 2])
     highest_point = dataset_aligned[max_x_index]
     current_x_value = lowest_point[0]
     final_list = []
@@ -498,11 +499,12 @@ for filename in os.listdir(data_directory):
         # with open('../ga_instances/' + new_filename, 'w') as outfile:
         #     yaml.dump(all_ga_data[d], outfile, default_flow_style=False)
         # data = [all_ga_data[d]]
-        filename = '../ga_instances/' + new_filename + '_' + str(d)
-        np.savez(filename, *all_ga_data[d])
-        filename += '_ev'
-        np.savez(filename, *all_eigenvectors[d])
-    # save_files(nib_image, ga_instances, filename)
+        # filename = '../ga_instances/' + new_filename + '_' + str(d)
+        # np.savez(filename, *all_ga_data[d])
+        # filename += '_ev'
+        # np.savez(filename, *all_eigenvectors[d])
+        break
+    save_files(nib_image, ga_instances, filename)
 
 
 

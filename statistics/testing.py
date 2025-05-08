@@ -13,7 +13,7 @@ import os
 def calculate_rmse_for_object(new_object_path, testing_directory):
     direction_vectors, direction_with_angles = sampling.sample_direction_vectors(1000, 3)
     mesh = trimesh.load(new_object_path)
-    voxelized = mesh.voxelize(pitch=1.0)
+    voxelized = mesh.voxelized(pitch=1.0)
     filled = voxelized.fill()
 
     # Get list of voxel coordinates (as numpy array)
@@ -84,6 +84,6 @@ def rmse_calculate_skeleton(actual, testing):
 
 
 # mito
-rmse = calculate_rmse_for_object('../results/smooth.obj', '../measurements/testing/')
+rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
 print('rmse for ...:', rmse)
 

@@ -1,5 +1,7 @@
+import logging
 import math
 import os
+from typing import final
 
 import numpy as np
 from scipy import ndimage
@@ -202,11 +204,11 @@ def calculate_distances_to_landmark_points(group, direction_vectors):
             #     ax.plot(points[s, 0], points[s, 1], points[s, 2], "r-")
             # ax.plot([origin[0]], [origin[1]], [origin[2]], "ko")
             # ax.quiver(*origin, *direction_vectors[0], color='black')
-            l, _, _ = mesh.ray.intersects_location(
-                ray_origins=[origin], ray_directions=[direction_vectors[0]]
-            )
+            # l, _, _ = mesh.ray.intersects_location(
+            #     ray_origins=[origin], ray_directions=[direction_vectors[0]]
+            # )
             # ax.scatter([l[0][0]], [l[0][1]], [l[0][2]], color='orange')
-            plt.show()
+            # plt.show()
 
             for direction_vector in direction_vectors:
                 locations, _, _ = mesh.ray.intersects_location(
@@ -219,7 +221,7 @@ def calculate_distances_to_landmark_points(group, direction_vectors):
                 #     max_distance = 0
                 # if math.isnan(max_distance):
                 #     print()
-                    if distances < 0:
+                    if distances <= 0:
                         print()
                     max_distance_points.append(distances)
                 else:
@@ -227,7 +229,9 @@ def calculate_distances_to_landmark_points(group, direction_vectors):
             all_measurments.append(max_distance_points)
         except QhullError:
             # return [0 for _ in direction_vectors]
-            all_measurments.append([0 for _ in direction_vectors])
+            # logging.exception("message")
+            # all_measurments.append([0 for _ in direction_vectors])
+            print('cisterna not added')
     return all_measurments
     # distance in the x axis
     # line_vector = [1.0, 0.0, 0.0]
@@ -260,6 +264,8 @@ def calculate_distances_to_landmark_points(group, direction_vectors):
 length = []
 # ugotovi najvecje stevilo cistern
 for filename in os.listdir(data_directory):
+    if '_ev' in filename:
+        continue
     data = np.load(data_directory + '/' + filename, allow_pickle=True)
     length.append(len(data))
 
@@ -284,6 +290,7 @@ for filename in os.listdir(data_directory):
     index = 0
     # utils.plot_3d(data[cisterna_points])
     direction_vectors = math_utils.generate_direction_vectors(ev_data, num_of_distance_vectors)
+    # utils.plot_3_base_vectors_and_direction_vectors(ev_data[0], ev_data[1], ev_data[2], direction_vectors)
     print('processing', len(data), 'cisternas')
     for i, cisterna_points in enumerate(data):
         print('processing cisterna', i)
@@ -294,6 +301,9 @@ for filename in os.listdir(data_directory):
         # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
         # print('processing cisterna')
         centers = utils.cisterna_volume_extraction(cis)
+        # if len(centers) >= 10:
+        #     utils.plot_grouped_points(centers)
+        print('found', len(centers), 'centers')
         # todo: za vsak center izracunaj Convex hull??? in naredi meritev
         # utils.plot_3d(cis)
         # grid = transform(cis)
@@ -304,6 +314,7 @@ for filename in os.listdir(data_directory):
         measurements = calculate_distances_to_landmark_points(centers, direction_vectors)
         # distances_index = int(len(distances) / max_cisternas_of_instance * index)
         distances_index = np.linspace(0, len(distances) - 1, max_cisternas_of_instance).astype(int)[index]
+        print('inserting at index', distances_index)
         # distances[distances_index].append([x, first, y, second, minus_x, third, minus_y, fourth])
         distances[distances_index] += measurements
         index += 1
@@ -317,6 +328,7 @@ for i, cisterna_distances in enumerate(distances):
     for r in result:
         final_list[i + 1].append(r)
 print('done')
+# utils.plot_histograms_for_ga_data(length, final_list[1][0], final_list[max_cisternas][0])
 utils.save_ga_measurements_to_file('../measurements/measurements_ga.pkl', final_list)
 # average_object_points, points_dict = generate_average(length, distances)
 # plot_points(average_object_points)

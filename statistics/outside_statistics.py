@@ -101,7 +101,7 @@ def sample_new_points(skeleton_distances, start_distances, end_distances, curvat
     utils.generate_obj_file(vertices, faces, f'test.obj')
     tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
     smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=10)
-    utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth_2.obj')
+    utils.generate_obj_file(smooth.vertices, smooth.faces, f'priblizek1.obj')
 
 
 def generate_mesh(skeleton_points, start_points, end_points):
@@ -417,5 +417,5 @@ if __name__ == '__main__':
     # utils.plot_histograms_for_data(skeleton, start, end, curvature, torsions, lengths)
     # for i, values in torsions.items():
     #     torsions[i] = [0]
-    sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, sigma=sigma)
+    sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, random_seed=123, sigma=sigma)
 

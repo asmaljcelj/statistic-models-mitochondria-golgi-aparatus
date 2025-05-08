@@ -71,6 +71,8 @@ def bezier_nth_order_and_parametrization(n, points, num_of_points_on_curve):
     for i in range(num_of_points_on_curve):
         l_i = prev_l + delta_L
         f_i = ((a * l_i + b) * l_i + c) * l_i
+        if f_i > 1:
+            print()
         reference_point = calculate_bezier_point(n, points, f_i)
         arc_length_approx.append(reference_point)
         prev_l = l_i

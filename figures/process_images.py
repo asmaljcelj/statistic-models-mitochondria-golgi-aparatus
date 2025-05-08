@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 # Load images
-img1 = mpimg.imread('length_50.png')
-img2 = mpimg.imread('length100.png')
+img1 = mpimg.imread('testing_shape.png')
+img2 = mpimg.imread('snapshot01.png')
 # img3 = mpimg.imread('curvature_only_one.png')
 
 # Create figure
