@@ -8,6 +8,8 @@ import bezier
 import sampling
 import math_utils
 import os
+import extract_ga_data
+import ga_statistics
 
 
 def calculate_rmse_for_object(new_object_path, testing_directory):
@@ -46,6 +48,30 @@ def calculate_rmse_for_object(new_object_path, testing_directory):
     return round(total_rmse / num_of_testing_intances, 3)
 
 
+def calculate_rmse_for_golgi(new_object_path, testing_directory):
+    direction_vectors = math_utils.generate_direction_vectors(
+        np.array([[1, 0],
+                  [0, 1]]), 10)
+    mesh = trimesh.load(new_object_path)
+    voxelized = mesh.voxelized(pitch=1.0)
+    filled = voxelized.fill()
+    # Get list of voxel coordinates (as numpy array)
+    voxels = filled.points.astype(int)
+    # image = utils.create_points_array(voxels)
+    cisternae, eigenvectors = extract_ga_data.read_files(None, None, np.array(voxels))
+    distances = {}
+    for i, cis in enumerate(cisternae):
+        centers = utils.cisterna_volume_extraction(cis)
+        measurements = ga_statistics.calculate_distances_to_landmark_points(centers, direction_vectors)
+        distances[i] = measurements
+    total_rmse, num_of_testing_intances = 0, 0
+    for filename in os.listdir(testing_directory):
+        print('processing', filename)
+        total_rmse += calculate_rmse_between_ga_objects(distances, filename)
+        num_of_testing_intances += 1
+    return round(total_rmse / num_of_testing_intances, 3)
+
+
 def calculate_rmse_between_objects(new_start, new_end, new_skeleton, test_object):
     _, start, end, skeleton, _, _, _ = utils.read_measurements_from_file('../measurements/testing/' + test_object)
     rmse, num_instances = 0, 0
@@ -59,6 +85,15 @@ def calculate_rmse_between_objects(new_start, new_end, new_skeleton, test_object
     num_instances += n
     rmse += rmse_value
     return math.sqrt(rmse / num_instances)
+
+
+def calculate_rmse_between_ga_objects(distances, test_object):
+    data = utils.read_measurements_from_file_ga('../measurements_ga/testing/' + test_object)
+    return rmse_calculate_ga(distances, data)
+
+
+def rmse_calculate_ga(actual, testing):
+    pass
 
 
 def rmse_calculate_edges(actual, testing):
@@ -84,6 +119,9 @@ def rmse_calculate_skeleton(actual, testing):
 
 
 # mito
-rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
+# rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
+# print('rmse for ...:', rmse)
+# GA
+rmse = calculate_rmse_for_golgi('../results/smooth_ga.obj', '../measurements_ga/testing/')
 print('rmse for ...:', rmse)
 

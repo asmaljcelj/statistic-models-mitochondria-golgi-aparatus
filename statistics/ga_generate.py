@@ -45,8 +45,8 @@ def generate_mesh(points):
             # ce smo na dnu ali na vrhu, generiraj se eno tocko v sredini in poveži v mesh
             center = np.mean(cisterna_points, axis=0)
             vertices.append(center)
-            index += 1
             center_index = index
+            index += 1
             for j, point in enumerate(cisterna_points):
                 vertices.append(point)
                 if j > 0:
@@ -155,10 +155,10 @@ def generate_average(num_of_cisternas, distances, num_of_direction_vectors, sigm
         combined_data = np.array(combined_data)
         # average_distances = math_utils.calculate_average_cisterna(combined_data)
         average_distances = calculate_new_distances_for_cisterna(combined_data, sigma)
-        points = populate_instances(average_distances, [i * multiplicator, 0, 0], num_of_direction_vectors)
+        points = populate_instances(average_distances, [0, 0, i * multiplicator], num_of_direction_vectors)
         final_object_dict[i] = points
         final_object.extend(points)
-    final = populate_instances(average_distances_max, [(num_of_cisternas - 1) * multiplicator, 0, 0], num_of_direction_vectors)
+    final = populate_instances(average_distances_max, [0, 0, (num_of_cisternas - 1) * multiplicator], num_of_direction_vectors)
     final_object_dict[num_of_cisternas - 1] = final
     final_object.extend(final)
     return np.array(final_object), final_object_dict
@@ -172,10 +172,10 @@ def create_parser():
 
 
 if __name__ == '__main__':
-    data = utils.read_measurements_from_file_ga('../measurements/measurements_ga.pkl')
+    data = utils.read_measurements_from_file_ga('../measurements_ga/learn/measurements_ga.pkl')
     meta_data = data[0]
     data.pop(0)
-    utils.plot_histograms_for_ga_data(meta_data[0], data[1][0], data[len(data) - 1][0])
+    # utils.plot_histograms_for_ga_data(meta_data[0], data[0][0], data[len(data) - 1][0])
     num_cisternas = int(np.mean(meta_data[0]))
     parser = create_parser()
     args = parser.parse_args()
@@ -187,7 +187,7 @@ if __name__ == '__main__':
         value = float(args.length)
         sigma.length = value
     num_of_direction_vectors = meta_data[1]
-    num_cisternas = 10
+    num_cisternas = 35
     average_object_points, points_dict = generate_average(num_cisternas, data, num_of_direction_vectors, sigma.length)
     # plot_points(average_object_points)
     vertices, faces = generate_mesh(points_dict)

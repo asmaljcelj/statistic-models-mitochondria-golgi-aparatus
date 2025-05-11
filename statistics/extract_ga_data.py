@@ -320,21 +320,34 @@ def read_files(instance_volume, filename, dataset):
     dataset_aligned, eigenvectors, mean = align_cisterna(dataset)
     centered_dataset = dataset - mean
     # plot_dataset_moved_and_pca(dataset, dataset_aligned, eigenvectors, mean)
-    min_x_index = np.argmin(dataset_aligned[:, 2])
-    lowest_point = dataset_aligned[min_x_index]
-    max_x_index = np.argmax(dataset_aligned[:, 2])
-    highest_point = dataset_aligned[max_x_index]
-    current_x_value = lowest_point[0]
-    final_list = []
-    while current_x_value <= highest_point[0]:
+    min_z_index = np.argmin(dataset_aligned[:, 2])
+    lowest_point = dataset_aligned[min_z_index]
+    max_z_index = np.argmax(dataset_aligned[:, 2])
+    highest_point = dataset_aligned[max_z_index]
+    current_z_value = lowest_point[2]
+    final_list = {}
+    while current_z_value <= highest_point[2]:
         # zberi piksle v posamezno cisterno
-        filtered_points = dataset_aligned[np.round(dataset_aligned[:, 0]) == np.round(current_x_value)]
-        final_points = []
-        for filtered_point in filtered_points:
-            original_point = eigenvectors @ filtered_point + mean
-            final_points.append(original_point)
-        final_list.append(np.array(final_points))
-        current_x_value += 1
+        filtered_points = dataset_aligned[np.floor(dataset_aligned[:, 2]) == np.floor(current_z_value)]
+        # final_points = []
+        # for filtered_point in filtered_points:
+        #     original_point = eigenvectors @ filtered_point + mean
+        #     final_points.append(original_point)
+        if len(filtered_points) < 4:
+            print()
+        final_list[current_z_value] = np.array(filtered_points)
+        current_z_value += 1
+    bank = []
+    final_list1 = []
+    for i, key in enumerate(final_list):
+        values = final_list[key]
+        if len(values) + len(bank) < 10 and i < len(final_list) - 1:
+            bank += list(values)
+            continue
+        if len(bank) > 0:
+            values = np.concatenate((values, np.array(bank)))
+            bank = []
+        final_list1.append(values)
     # flattened = [inner for outer in final_list for inner in outer]
     # plot_dataset_moved_and_pca(centered_dataset, dataset_aligned, None, None)
     # height = eig_vec[0]
@@ -396,9 +409,12 @@ def read_files(instance_volume, filename, dataset):
         # all_points[closest_index].append(point)
     # print('END remaining points:', len(remaining_points))
     # plot_ga_instances(dataset, 0, 0, 0, 0, final_list)
-    for i in range(len(final_list)):
-        final_list[i] = np.array(final_list[i], dtype=object)
-    return final_list, eigenvectors
+    for i in range(len(final_list1)):
+        final_list1[i] = np.array(final_list1[i], dtype=object)
+    return final_list1, eigenvectors
+    # for i in final_list1:
+    #     final_list1[i] = np.array(final_list1[i], dtype=object)
+    # return final_list1, eigenvectors
 
 
 def get_plane_equation_parameters(normal, point_on_plane):
@@ -468,43 +484,41 @@ def align_cisterna(ga_object):
     return result, matrix, mean
 
 
-for filename in os.listdir(data_directory):
-    relative_file_path = data_directory + '/' + filename
-    print('processing file:', filename)
-    nib_image = nib.load(relative_file_path)
-    image_data = nib_image.get_fdata()
-    ga_instances = extract_ga_instances(image_data)
-    all_ga_data, all_eigenvectors = {}, {}
-    for instance in ga_instances:
-        print('processing instance ', instance)
-        cisternae, eigenvectors = read_files(image_data, filename, ga_instances[instance])
-        all_ga_data[instance] = cisternae
-        all_eigenvectors[instance] = eigenvectors
-        print('done with cisternae extraction')
-        # plot_ga_instances(None, None, None, None, None, cisternae)
-        # new_list = []
-        # for c in cisternae:
-        #     aligned = align_cisternae_to_axis(c)
-        #     if aligned is not None:
-        #         new_list.append(aligned)
-        # all_ga_data[instance] = new_list
-    print('done with processing, saving files')
-    new_filename = filename.replace('.nii.gz', '')
-    # with open('../ga_instances/' + new_filename, 'w') as outfile:
-    #     writer = csv.writer(outfile)
-    #     for data in all_ga_data:
-    #         writer.writerow(all_ga_data[data])
-    #         writer.writerow({})
-    for d in all_ga_data:
+# todo: razdeli v learning in test dataset
+if __name__ == '__main__':
+    for filename in os.listdir(data_directory):
+        relative_file_path = data_directory + '/' + filename
+        print('processing file:', filename)
+        nib_image = nib.load(relative_file_path)
+        image_data = nib_image.get_fdata()
+        ga_instances = extract_ga_instances(image_data)
+        all_ga_data, all_eigenvectors = {}, {}
+        for instance in ga_instances:
+            print('processing instance ', instance)
+            cisternae, eigenvectors = read_files(image_data, filename, ga_instances[instance])
+            all_ga_data[instance] = cisternae
+            all_eigenvectors[instance] = eigenvectors
+            print('done with cisternae extraction')
+            # plot_ga_instances(None, None, None, None, None, cisternae)
+            # new_list = []
+            # for c in cisternae:
+            #     aligned = align_cisternae_to_axis(c)
+            #     if aligned is not None:
+            #         new_list.append(aligned)
+            # all_ga_data[instance] = new_list
+        print('done with processing, saving files')
+        new_filename = filename.replace('.nii.gz', '')
         # with open('../ga_instances/' + new_filename, 'w') as outfile:
-        #     yaml.dump(all_ga_data[d], outfile, default_flow_style=False)
-        # data = [all_ga_data[d]]
-        # filename = '../ga_instances/' + new_filename + '_' + str(d)
-        # np.savez(filename, *all_ga_data[d])
-        # filename += '_ev'
-        # np.savez(filename, *all_eigenvectors[d])
-        break
-    save_files(nib_image, ga_instances, filename)
-
-
-
+        #     writer = csv.writer(outfile)
+        #     for data in all_ga_data:
+        #         writer.writerow(all_ga_data[data])
+        #         writer.writerow({})
+        for d in all_ga_data:
+            # with open('../ga_instances/' + new_filename, 'w') as outfile:
+            #     yaml.dump(all_ga_data[d], outfile, default_flow_style=False)
+            # data = [all_ga_data[d]]
+            filename = '../ga_instances/' + new_filename + '_' + str(d)
+            np.savez(filename, *all_ga_data[d])
+            filename += '_ev'
+            np.savez(filename, *all_eigenvectors[d])
+        # save_files(nib_image, ga_instances, filename)

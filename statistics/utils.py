@@ -4,6 +4,7 @@ import random
 import time
 from collections import Counter
 from tabnanny import check
+import scipy.ndimage as ndi
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from networkx.algorithms.distance_measures import center
 from scipy.spatial import cKDTree
+from sklearn.cluster import DBSCAN
 from trimesh.graph import neighbors
 
 import math_utils
@@ -646,34 +648,96 @@ def plot_generated_skeleton_points(previous_points, T, N, B, new_point, new_T, n
 
 
 def cisterna_volume_extraction(cisterna_points):
-    # plot_3d(cisterna_points)
-    current_volume_points = cisterna_points.copy()
-    centers = []
+    # if len(cisterna_points) < 8:
+    #     # if to little elements in cisterna, include all in 1
+    #     points = []
+    #     for point in cisterna_points:
+    #         points.append(np.array([point[0], point[1]]))
+    #     mean = np.mean(np.array(points), axis=0)
+    #     return {tuple(mean): np.array(points)}
+    # min_x = min(x for x, y, z in cisterna_points)
+    # max_x = max(x for x, y, z in cisterna_points)
+    # range_x = abs(max_x - min_x) + 1
+    # min_y = min(y for x, y, z in cisterna_points)
+    # max_y = max(y for x, y, z in cisterna_points)
+    # range_y = abs(max_y - min_y) + 1
+    # # max_z = max(z for x, y, z in cisterna_points) + 1
+    # # image = np.zeros((max_x, max_y, max_z), dtype=np.uint8)
+    # image = np.zeros((range_x, range_y), dtype=np.uint8)
+    #
+    # # for x, y, z in cisterna_points:
+    # for x, y, _ in cisterna_points:
+    #     # image[x, y, z] = 1
+    #     image[x - min_x, y - min_y] = 1
+    #
+    # # Label connected components
+    # labeled_array, num_features = ndi.label(image,
+    # [[1, 1, 1],
+    #           [1, 1, 1],
+    #           [1,1, 1]]
+    #                                         )
+    db = DBSCAN(eps=5.0, min_samples=4).fit(cisterna_points)
+    labels = db.labels_
+    labeled_array = {}
+    for i, label in enumerate(labels):
+        if label == -1:
+            print('voxel detected as noise, ignoring')
+            continue
+        if label not in labeled_array:
+            labeled_array[label] = []
+        point = [cisterna_points[i][0], cisterna_points[i][1]]
+        labeled_array[label].append(np.array(point))
+    print('found', len(labeled_array), 'centers')
+    # list = {}
+    # for key in range(num_features):
+    #     list[key + 1] = []
+    # for i in range(labeled_array.shape[0]):
+    #     for j in range(labeled_array.shape[1]):
+    #         # for k in range(labeled_array.shape[2]):
+    #         #     if labeled_array[i, j, k] > 0:
+    #         #         value = labeled_array[i, j, k]
+    #         #         list[value].append(np.array([i, j, k]))
+    #         if labeled_array[i, j] > 0:
+    #             value = labeled_array[i, j]
+    #             list[value].append(np.array([i, j]))
     grouped_points = {}
-    while len(current_volume_points) > 0:
-        new_volume_points = []
-        tree = cKDTree(current_volume_points)
-        for point in current_volume_points:
-            neighbors = tree.query_ball_point(point, 1.8)
-            # if points has no neighbors, we found the center
-            if len(neighbors) == 1:
-                centers.append(point)
-            # if point has 3 neighbors, that point is not on the edge, so preserve it (also check if it has neighbors in opposite directions)
-            # if len(neighbors) >= 3 and check_if_voxel_inside(neighbors, current_volume_points, point):
-            if check_if_voxel_inside(neighbors, current_volume_points, point):
-                new_volume_points.append(point)
-        current_volume_points = np.array(new_volume_points)
-    if len(centers) == 0:
-        mean = np.mean(cisterna_points, axis=0)
-        grouped_points[tuple(mean)] = cisterna_points
-    else:
-        # for every center, calculate points that belong to it
-        grouped_points = calculate_points_around_centers(centers, cisterna_points)
-    # if len(grouped_points.keys()) > 1:
-    #     print()
-    #     plot_grouped_points(grouped_points)
-    #     print()
+    for key in labeled_array:
+        if len(labeled_array[key]) < 4:
+            print('to little number of elements', len(labeled_array[key]), '-ignoring')
+            continue
+        mean = np.mean(labeled_array[key], axis=0)
+        grouped_points[tuple(mean)] = labeled_array[key]
+    # plot_grouped_points(grouped_points)
     return grouped_points
+
+    # plot_3d(cisterna_points)
+    # current_volume_points = cisterna_points.copy()
+    # centers = []
+    # grouped_points = {}
+    # while len(current_volume_points) > 0:
+    #     new_volume_points = []
+    #     tree = cKDTree(current_volume_points)
+    #     for point in current_volume_points:
+    #         neighbors = tree.query_ball_point(point, 1.8)
+    #         # if points has no neighbors, we found the center
+    #         if len(neighbors) == 1:
+    #             centers.append(point)
+    #         # if point has 3 neighbors, that point is not on the edge, so preserve it (also check if it has neighbors in opposite directions)
+    #         # if len(neighbors) >= 3 and check_if_voxel_inside(neighbors, current_volume_points, point):
+    #         if check_if_voxel_inside(neighbors, current_volume_points, point):
+    #             new_volume_points.append(point)
+    #     current_volume_points = np.array(new_volume_points)
+    # if len(centers) == 0:
+    #     mean = np.mean(cisterna_points, axis=0)
+    #     grouped_points[tuple(mean)] = cisterna_points
+    # else:
+    #     # for every center, calculate points that belong to it
+    #     grouped_points = calculate_points_around_centers(centers, cisterna_points)
+    # # if len(grouped_points.keys()) > 1:
+    # #     print()
+    # #     plot_grouped_points(grouped_points)
+    # #     print()
+    # return grouped_points
 
 
 def check_if_voxel_inside(neighbors, points, current_point):
@@ -794,3 +858,13 @@ def create_3d_image(voxels):
     volume = np.zeros(shape, dtype=np.uint8)
     volume[tuple(shifted_voxels.T)] = 1
     return volume
+
+
+def create_points_array(voxels):
+    list = []
+    for i in range(voxels.shape[0]):
+        for j in range(voxels.shape[1]):
+            for k in range(voxels.shape[2]):
+                if voxels[i, j, k] != 0:
+                    list.append(np.array([i, j, k]))
+    return np.array(list)
