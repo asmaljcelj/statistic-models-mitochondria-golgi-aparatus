@@ -1,15 +1,16 @@
 import math
-
-import utils
-import trimesh
-import skeletonization
-import numpy as np
-import bezier
-import sampling
-import math_utils
 import os
+
+import numpy as np
+import trimesh
+
+import bezier
 import extract_ga_data
 import ga_statistics
+import math_utils
+import sampling
+import skeletonization
+import utils
 
 
 def calculate_rmse_for_object(new_object_path, testing_directory):
@@ -57,17 +58,21 @@ def calculate_rmse_for_golgi(new_object_path, testing_directory):
     filled = voxelized.fill()
     # Get list of voxel coordinates (as numpy array)
     voxels = filled.points.astype(int)
+    # voxels = []
+    # for vertex in mesh.vertices:
+    #     voxels.append([round(vertex[0]), round(vertex[1]), round(vertex[2])])
+    # voxels = list(map(list, set(map(tuple, voxels))))
     # image = utils.create_points_array(voxels)
     cisternae, eigenvectors = extract_ga_data.read_files(None, None, np.array(voxels))
     distances = {}
     for i, cis in enumerate(cisternae):
         centers = utils.cisterna_volume_extraction(cis)
-        measurements = ga_statistics.calculate_distances_to_landmark_points(centers, direction_vectors)
+        measurements = ga_statistics.calculate_distances_to_landmark_points(centers, direction_vectors, True)
         distances[i] = measurements
     total_rmse, num_of_testing_intances = 0, 0
     for filename in os.listdir(testing_directory):
         print('processing', filename)
-        total_rmse += calculate_rmse_between_ga_objects(distances, filename)
+        total_rmse += calculate_rmse_between_ga_objects(distances, filename, len(direction_vectors))
         num_of_testing_intances += 1
     return round(total_rmse / num_of_testing_intances, 3)
 
@@ -87,13 +92,30 @@ def calculate_rmse_between_objects(new_start, new_end, new_skeleton, test_object
     return math.sqrt(rmse / num_instances)
 
 
-def calculate_rmse_between_ga_objects(distances, test_object):
+def calculate_rmse_between_ga_objects(distances, test_object, direction_vectors):
     data = utils.read_measurements_from_file_ga('../measurements_ga/testing/' + test_object)
-    return rmse_calculate_ga(distances, data)
+    return rmse_calculate_ga(distances, data, direction_vectors)
 
 
-def rmse_calculate_ga(actual, testing):
-    pass
+def rmse_calculate_ga(actual, testing, direction_vectors):
+    rmse = 0
+    smaller_instance, larger_instance = (actual, testing) if len(actual) < len(testing) else (testing, actual)
+    interval = np.linspace(0, len(larger_instance) - 1, len(smaller_instance)).astype(int)
+    calculations = 0
+    for i, data in enumerate(smaller_instance):
+        if isinstance(smaller_instance, dict):
+            measurements = smaller_instance[data]
+        else:
+            measurements = data
+        if len(measurements) > 1:
+            measurements = [list(np.mean(measurements, axis=0))]
+        larger_index = interval[i]
+        for j, measurement in enumerate(measurements):
+            other_value = larger_instance[larger_index][j]
+            for k, m in enumerate(measurement):
+                calculations += 1
+                rmse += (m - other_value[k]) ** 2
+    return rmse / (len(smaller_instance) * direction_vectors)
 
 
 def rmse_calculate_edges(actual, testing):
@@ -122,6 +144,6 @@ def rmse_calculate_skeleton(actual, testing):
 # rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
 # print('rmse for ...:', rmse)
 # GA
-rmse = calculate_rmse_for_golgi('../results/smooth_ga.obj', '../measurements_ga/testing/')
+rmse = calculate_rmse_for_golgi('../results/123_10_ga_c_50_002.obj', '../measurements_ga/testing/')
 print('rmse for ...:', rmse)
 

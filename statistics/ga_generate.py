@@ -115,25 +115,27 @@ def plot_points(points):
 
 
 def calculate_new_distances_for_cisterna(data, sigma):
+    # return list(np.mean(data, axis=1))
     distances = []
     for cisterna_distances in data:
-        value = utils.retrieve_new_value_from_standard_derivation(sigma, cisterna_distances)[0]
+        value = utils.retrieve_new_value_from_standard_derivation_ga(sigma, cisterna_distances)
         if value < 0:
             value = 0
         distances.append(value)
     return distances
 
 
-def generate_average(num_of_cisternas, distances, num_of_direction_vectors, sigma):
+def generate_instance(num_of_cisternas, distances, num_of_direction_vectors, sigma):
+
     # figure out number of cisterna stacks
     # cisternae_sizes = np.array(cisternae_sizes)
     # num_of_cisternas = int(np.mean(cisternae_sizes))
     # generate landmark points at each step
     # first generate cisterna 1
     # average_distances_zero = math_utils.calculate_average_cisterna(distances[0])
-    average_distances_zero = calculate_new_distances_for_cisterna(distances[0], sigma)
+    average_distances_zero = calculate_new_distances_for_cisterna(distances[0], sigma.length)
     # average_distances_max = math_utils.calculate_average_cisterna(distances[len(distances) - 1])
-    average_distances_max = calculate_new_distances_for_cisterna(distances[len(distances) - 1], sigma)
+    average_distances_max = calculate_new_distances_for_cisterna(distances[len(distances) - 1], sigma.length)
     # zdruzi posamezne meritve med sabo
     num_of_remaining = num_of_cisternas - 2
     num_per_stack = int(len(distances) / num_of_remaining)
@@ -154,7 +156,7 @@ def generate_average(num_of_cisternas, distances, num_of_direction_vectors, sigm
                 combined_data[k].extend(distances[j][k])
         combined_data = np.array(combined_data)
         # average_distances = math_utils.calculate_average_cisterna(combined_data)
-        average_distances = calculate_new_distances_for_cisterna(combined_data, sigma)
+        average_distances = calculate_new_distances_for_cisterna(combined_data, sigma.length)
         points = populate_instances(average_distances, [0, 0, i * multiplicator], num_of_direction_vectors)
         final_object_dict[i] = points
         final_object.extend(points)
@@ -168,6 +170,7 @@ def create_parser():
     parser = argparse.ArgumentParser(description='Generate new GA shape')
     parser.add_argument('-c', '--cisternas', help='number of cisternas in stack')
     parser.add_argument('-l', '--length', help='value of sigma for length in each direction')
+    parser.add_argument('-s', '--seed', help='value of seed for random number generator')
     return parser
 
 
@@ -175,23 +178,32 @@ if __name__ == '__main__':
     data = utils.read_measurements_from_file_ga('../measurements_ga/learn/measurements_ga.pkl')
     meta_data = data[0]
     data.pop(0)
-    # utils.plot_histograms_for_ga_data(meta_data[0], data[0][0], data[len(data) - 1][0])
-    num_cisternas = int(np.mean(meta_data[0]))
+    # utils.plot_histograms_for_ga_data(meta_data[0], data[0], data[len(data) - 1])
+    # num_cisternas = int(np.mean(meta_data[0]))
+    num_cisternas = None
     parser = create_parser()
     args = parser.parse_args()
     sigma = SigmaParameters()
+    seed = 123
     if args.cisternas:
         value = int(args.cisternas)
         num_cisternas = value
     if args.length:
         value = float(args.length)
         sigma.length = value
+    if args.seed:
+        seed = int(args.seed)
     num_of_direction_vectors = meta_data[1]
-    num_cisternas = 35
-    average_object_points, points_dict = generate_average(num_cisternas, data, num_of_direction_vectors, sigma.length)
+    if num_cisternas is None:
+        min_size = min(meta_data[0])
+        max_size = max(meta_data[0])
+        num_cisternas = round(np.random.uniform(min_size, max_size))
+    print('generating object with', num_cisternas, 'cisternas')
+    np.random.seed(seed)
+    average_object_points, points_dict = generate_instance(num_cisternas, data, num_of_direction_vectors, sigma)
     # plot_points(average_object_points)
     vertices, faces = generate_mesh(points_dict)
     utils.generate_obj_file(vertices, faces, f'ga.obj')
     tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    smooth = trimesh.smoothing.filter_humphrey(tri_mesh)
-    utils.generate_obj_file(smooth.vertices, smooth.faces, f'smooth_ga.obj')
+    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=0)
+    utils.generate_obj_file(smooth.vertices, smooth.faces, f'test.obj')

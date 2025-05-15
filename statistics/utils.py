@@ -10,9 +10,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
+import scipy.stats
 from mpl_toolkits.mplot3d import Axes3D
 from networkx.algorithms.distance_measures import center
 from scipy.spatial import cKDTree
+from scipy.stats import expon, gamma
 from sklearn.cluster import DBSCAN
 from trimesh.graph import neighbors
 
@@ -593,6 +595,20 @@ def retrieve_new_value_from_standard_derivation(sigma, data):
     return (average - standard_deviation) + sample * whole_std_interval
 
 
+def retrieve_new_value_from_standard_derivation_ga(sigma, data):
+    average, standard_deviation = math_utils.calculate_average_and_standard_deviation(data)
+    # loc, scale = expon.fit(data)
+    # lambda_estimate = 1 / scale
+    # sample = np.random.exponential(lambda_estimate)
+    # sample = np.random.exponential(1 / standard_deviation)
+    start_interval = np.min(np.array([average, np.array(standard_deviation)]))
+    # return (average - start_interval) + sample
+    # sample = np.random.poisson(lam=average)
+    shape, loc, scale = gamma.fit(data, floc=0)
+    sample = np.random.gamma(shape * sigma, scale)
+    return (average - start_interval) + sample
+
+
 def plot_histograms_for_data(skeletons, start, end, curvature, torsion, lengths):
     fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(30, 15))
     ax[0, 0].set_title('Skeleton', fontsize='30')
@@ -616,9 +632,12 @@ def plot_histograms_for_ga_data(length, first_cisterna, last_cisterna):
     ax[0].set_title('Dolžine', fontsize='30')
     ax[0].hist(length, bins=5, color='skyblue', edgecolor='black')
     ax[1].set_title('1. cisterna', fontsize='30')
-    ax[1].hist(first_cisterna, bins=5, color='skyblue', edgecolor='black')
+    labels = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324]
+    ax[1].boxplot(first_cisterna, tick_labels=labels)
+    # ax[1].hist(first_cisterna, bins=5, color='skyblue', edgecolor='black')
     ax[2].set_title('Zadnja cisterna', fontsize='30')
-    ax[2].hist(last_cisterna, bins=5, color='skyblue', edgecolor='black')
+    # ax[2].hist(last_cisterna, bins=5, color='skyblue', edgecolor='black')
+    ax[2].boxplot(last_cisterna, tick_labels=labels)
     plt.show()
 
 
@@ -676,7 +695,7 @@ def cisterna_volume_extraction(cisterna_points):
     #           [1, 1, 1],
     #           [1,1, 1]]
     #                                         )
-    db = DBSCAN(eps=5.0, min_samples=4).fit(cisterna_points)
+    db = DBSCAN(eps=1.8, min_samples=3).fit(cisterna_points)
     labels = db.labels_
     labeled_array = {}
     for i, label in enumerate(labels):
@@ -810,7 +829,8 @@ def calculate_points_around_centers(centers, cisterna_points):
 def plot_grouped_points(grouped_points):
     matplotlib.use('TkAgg')
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    # ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111)
 
     colors = plt.cm.jet(np.linspace(0, 1, len(grouped_points)))
 
@@ -822,12 +842,17 @@ def plot_grouped_points(grouped_points):
         ax.scatter(*center, color=color, marker='o', s=100, edgecolor='black', label=f'Center {center}')
 
         # Plot points with the same color
-        ax.scatter(points[:, 0], points[:, 1], points[:, 2], color=color, marker='o', alpha=0.7)
+        # ax.scatter(points[:, 0], points[:, 1], points[:, 2], color=color, marker='o', alpha=0.7)
+        ax.scatter(points[:, 0], points[:, 1], color=color, marker='o', alpha=0.7)
 
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-    ax.legend()
+    # ax.set_xlabel("X")
+    # ax.set_ylabel("Y")
+    # ax.set_zlabel("Z")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    plt.axis('off')
+    # plt.grid(b=None)
+    # ax.legend()
     plt.show()
 
 
@@ -868,3 +893,4 @@ def create_points_array(voxels):
                 if voxels[i, j, k] != 0:
                     list.append(np.array([i, j, k]))
     return np.array(list)
+

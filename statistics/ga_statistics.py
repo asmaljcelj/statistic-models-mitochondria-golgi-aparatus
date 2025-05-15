@@ -185,7 +185,7 @@ def transform(coords):
 
 
 # def calculate_distances_to_landmark_points(group, vectors, num_of_direction_vectors=8):
-def calculate_distances_to_landmark_points(group, direction_vectors):
+def calculate_distances_to_landmark_points(group, direction_vectors, testing=False):
     # direction_vectors = math_utils.generate_direction_vectors(vectors, num_of_direction_vectors)
     all_measurments = []
     # matplotlib.use('TkAgg')
@@ -193,6 +193,8 @@ def calculate_distances_to_landmark_points(group, direction_vectors):
         max_distance_points = []
         try:
             points = group[origin]
+            # if testing:
+            #     origin = (0, 0)
             # fig = plt.figure()
             # ax = fig.add_subplot(111, projection="3d")
 
@@ -277,7 +279,7 @@ def calculate_distances_to_landmark_points(group, direction_vectors):
 
 
 if __name__ == '__main__':
-    split_percentage = 86
+    split_percentage = 82
     num_split = int(len(os.listdir(data_directory)) / 2 * split_percentage / 100)
     length = []
     # ugotovi najvecje stevilo cistern
@@ -328,6 +330,8 @@ if __name__ == '__main__':
             # x, y, minus_x, minus_y, first, second, third, fourth = calculate_distances_to_landmark_points(cis)
             # print('processing cisterna')
             centers = utils.cisterna_volume_extraction(cis)
+            # if len(centers) > 1:
+            #     utils.plot_grouped_points(centers)
             # if len(centers) >= 10:
             #     utils.plot_grouped_points(centers)
             print('found', len(centers), 'centers')

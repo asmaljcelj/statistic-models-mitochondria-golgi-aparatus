@@ -496,9 +496,13 @@ if __name__ == '__main__':
         for instance in ga_instances:
             print('processing instance ', instance)
             cisternae, eigenvectors = read_files(image_data, filename, ga_instances[instance])
+            if len(cisternae) <= 3:
+                print('ignoring instance', instance, '; length = ', len(cisternae))
+                continue
             all_ga_data[instance] = cisternae
             all_eigenvectors[instance] = eigenvectors
             print('done with cisternae extraction')
+            print('found', len(cisternae), 'cisternas')
             # plot_ga_instances(None, None, None, None, None, cisternae)
             # new_list = []
             # for c in cisternae:

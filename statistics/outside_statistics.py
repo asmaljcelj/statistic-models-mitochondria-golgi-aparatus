@@ -371,7 +371,7 @@ def validate_sigma_parameter(sigma):
     if sigma < 0 or sigma > 1:
         raise ValueError('sigma value must be between 0 and 1')
 
-
+# todo: dodaj seed v argumente
 if __name__ == '__main__':
     curvature, start, end, skeleton, lengths, direction_with_angles, torsions = utils.read_measurements_from_file('../measurements/learn/measurements.pkl')
     parser = create_parser()
