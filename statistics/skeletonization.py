@@ -31,9 +31,9 @@ def skeletonize_voxels(voxels):
 
     points_x, points_y, points_z = [], [], []
     final_points = []
-    for x in range(result.shape[0]):
-        for y in range(result.shape[1]):
-            for z in range(result.shape[2]):
+    for x in range(result.scalle[0]):
+        for y in range(result.scalle[1]):
+            for z in range(result.scalle[2]):
                 if result[x][y][z] > 0:
                     points_x.append(x)
                     points_y.append(y)

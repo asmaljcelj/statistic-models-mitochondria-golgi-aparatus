@@ -16,6 +16,7 @@ from networkx.algorithms.distance_measures import center
 from scipy.spatial import cKDTree
 from scipy.stats import expon, gamma
 from sklearn.cluster import DBSCAN
+from sklearn.neighbors import KernelDensity
 from trimesh.graph import neighbors
 
 import math_utils
@@ -595,18 +596,39 @@ def retrieve_new_value_from_standard_derivation(sigma, data):
     return (average - standard_deviation) + sample * whole_std_interval
 
 
-def retrieve_new_value_from_standard_derivation_ga(sigma, data):
-    average, standard_deviation = math_utils.calculate_average_and_standard_deviation(data)
+def retrieve_new_value_from_standard_derivation_ga(sigma, sigma_scale, data):
+    # average, standard_deviation = math_utils.calculate_average_and_standard_deviation(data)
+    # variance = standard_deviation ** 2
     # loc, scale = expon.fit(data)
     # lambda_estimate = 1 / scale
     # sample = np.random.exponential(lambda_estimate)
     # sample = np.random.exponential(1 / standard_deviation)
-    start_interval = np.min(np.array([average, np.array(standard_deviation)]))
+    # start_interval = np.min(np.array([average, np.array(standard_deviation)]))
     # return (average - start_interval) + sample
     # sample = np.random.poisson(lam=average)
-    shape, loc, scale = gamma.fit(data, floc=0)
-    sample = np.random.gamma(shape * sigma, scale)
-    return (average - start_interval) + sample
+    # shape, loc, scale = gamma.fit(data, floc=0)
+    # sample = np.random.gamma(shape * sigma, scale * sigma_scale)
+    # sample = np.random.gamma(shape * 0.2, scale)
+    # sample = np.random.gamma((average ** 2 / variance) * sigma, (variance / average) * sigma_scale)
+    # return (average - start_interval) + sample
+    # return (average - start_interval)
+    # return average
+    # sample = np.random.normal(average, standard_deviation * 0.005)
+    # return sample
+    # if not 0 <= sigma_scale <= 1 or not 0 <= sigma <= 1:
+    #     raise Exception('sigma_scale and scale must be between 0 and 1')
+    data = np.array(data)
+    X = data.reshape(-1, 1)
+    kde = KernelDensity(kernel='gaussian', bandwidth=sigma)
+    kde.fit(X)
+    # sample = -1
+    # while sample <= 0:
+    # sample = np.abs(kde.sample(random_state=1337)[0][0])
+    sample = np.abs(kde.sample()[0][0])
+    sample = sample * sigma_scale
+    # kde = stats.gaussian_kde(data)
+    # sample = kde.resample(1, seed=123)
+    return sample
 
 
 def plot_histograms_for_data(skeletons, start, end, curvature, torsion, lengths):
@@ -625,6 +647,7 @@ def plot_histograms_for_data(skeletons, start, end, curvature, torsion, lengths)
     ax[1, 2].set_title('Dolžina skeletona', fontsize='30')
     ax[1, 2].hist(lengths, bins=10, color='skyblue', edgecolor='black')
     plt.show()
+
 
 def plot_histograms_for_ga_data(length, first_cisterna, last_cisterna):
     matplotlib.use('TkAgg')
@@ -887,9 +910,9 @@ def create_3d_image(voxels):
 
 def create_points_array(voxels):
     list = []
-    for i in range(voxels.shape[0]):
-        for j in range(voxels.shape[1]):
-            for k in range(voxels.shape[2]):
+    for i in range(voxels.scalle[0]):
+        for j in range(voxels.scalle[1]):
+            for k in range(voxels.scalle[2]):
                 if voxels[i, j, k] != 0:
                     list.append(np.array([i, j, k]))
     return np.array(list)

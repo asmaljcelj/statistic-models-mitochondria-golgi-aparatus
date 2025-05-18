@@ -69,12 +69,14 @@ def calculate_rmse_for_golgi(new_object_path, testing_directory):
         centers = utils.cisterna_volume_extraction(cis)
         measurements = ga_statistics.calculate_distances_to_landmark_points(centers, direction_vectors, True)
         distances[i] = measurements
-    total_rmse, num_of_testing_intances = 0, 0
+    total_rmse, num_of_testing_instances = 0, 0
     for filename in os.listdir(testing_directory):
         print('processing', filename)
-        total_rmse += calculate_rmse_between_ga_objects(distances, filename, len(direction_vectors))
-        num_of_testing_intances += 1
-    return round(total_rmse / num_of_testing_intances, 3)
+        rmse_one_instance = calculate_rmse_between_ga_objects(distances, filename, len(direction_vectors))
+        total_rmse += rmse_one_instance
+        print('rmse:', rmse_one_instance)
+        num_of_testing_instances += 1
+    return round(total_rmse / num_of_testing_instances, 3)
 
 
 def calculate_rmse_between_objects(new_start, new_end, new_skeleton, test_object):
@@ -111,6 +113,8 @@ def rmse_calculate_ga(actual, testing, direction_vectors):
             measurements = [list(np.mean(measurements, axis=0))]
         larger_index = interval[i]
         for j, measurement in enumerate(measurements):
+            if len(larger_instance[larger_index]) == 0:
+                continue
             other_value = larger_instance[larger_index][j]
             for k, m in enumerate(measurement):
                 calculations += 1
@@ -144,6 +148,6 @@ def rmse_calculate_skeleton(actual, testing):
 # rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
 # print('rmse for ...:', rmse)
 # GA
-rmse = calculate_rmse_for_golgi('../results/123_10_ga_c_50_002.obj', '../measurements_ga/testing/')
+rmse = calculate_rmse_for_golgi('../results/testing_shape.obj', '../measurements_ga/testing/')
 print('rmse for ...:', rmse)
 

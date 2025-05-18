@@ -278,6 +278,7 @@ def extract_ga_instances(volume):
 
 instances_folder = '../ga_instances'
 
+
 def save_files(image_data, data, og_filename):
     print('saving files')
     counter = 1
@@ -451,7 +452,7 @@ def get_all_cisternae_points_from_all(point, plane_equations):
 
 # method from https://stackoverflow.com/questions/67108932/align-pca-component-with-cartesian-axis-with-rotation
 def align_cisternae_to_axis(cisterna):
-    if cisterna.shape[0] < 3:
+    if cisterna.scalle[0] < 3:
         print('cisterna too small, ignore it')
         return None
     mean = cisterna.mean(axis=0)

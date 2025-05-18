@@ -66,7 +66,7 @@ def iterate_ray(origin, direction_vector, shape):
         current_voxel = [x_coord, y_coord, z_coord]
         # if x_coord == -259 or y_coord == -259 or z_coord == -259:
         #     print('a')
-        in_boundary = x_coord >= 0 and y_coord >= 0 and z_coord >= 0 and x_coord < shape.shape[0] and y_coord < shape.shape[1] and z_coord < shape.shape[2] and shape[x_coord][y_coord][z_coord] > 0
+        in_boundary = x_coord >= 0 and y_coord >= 0 and z_coord >= 0 and x_coord < shape.scalle[0] and y_coord < shape.scalle[1] and z_coord < shape.scalle[2] and shape[x_coord][y_coord][z_coord] > 0
         # todo: improved collision detection and distance measurement
         if not in_boundary:
             # distance += magnitude(direction_vector)

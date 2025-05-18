@@ -12,9 +12,10 @@ class SigmaParameters:
     length = 0.2
     size = 0.2
 
-    def __init__(self, length=0.2, size=0.2):
+    def __init__(self, length=0.2, size=0.2, shape=1):
         self.length = length
         self.size = size
+        self.scale = shape
 
     def __str__(self):
         return 'length = {:.2f}, size = {:.2f}'.format(self.length, self.size)
@@ -61,6 +62,7 @@ def generate_mesh(points):
                         faces.append([index, center_index, center_index + 1])
                 index += 1
     return vertices, faces
+
 
 def populate_instances(distances, starting_point, num_of_direction_vectors):
     points = []
@@ -114,11 +116,14 @@ def plot_points(points):
     plt.show()
 
 
-def calculate_new_distances_for_cisterna(data, sigma):
+def calculate_new_distances_for_cisterna(data, sigma_length, sigma_scale):
     # return list(np.mean(data, axis=1))
     distances = []
-    for cisterna_distances in data:
-        value = utils.retrieve_new_value_from_standard_derivation_ga(sigma, cisterna_distances)
+    for i, cisterna_distances in enumerate(data):
+        # if i > 0:
+        #     value = 0
+        # else:
+        value = utils.retrieve_new_value_from_standard_derivation_ga(sigma_length, sigma_scale, cisterna_distances)
         if value < 0:
             value = 0
         distances.append(value)
@@ -126,16 +131,17 @@ def calculate_new_distances_for_cisterna(data, sigma):
 
 
 def generate_instance(num_of_cisternas, distances, num_of_direction_vectors, sigma):
-
     # figure out number of cisterna stacks
     # cisternae_sizes = np.array(cisternae_sizes)
     # num_of_cisternas = int(np.mean(cisternae_sizes))
     # generate landmark points at each step
     # first generate cisterna 1
     # average_distances_zero = math_utils.calculate_average_cisterna(distances[0])
-    average_distances_zero = calculate_new_distances_for_cisterna(distances[0], sigma.length)
+    sequence_length = np.linspace(0, len(sigma.length) - 1, num_of_cisternas, dtype=int)
+    sequence_scale = np.linspace(0, len(sigma.scale) - 1, num_of_cisternas, dtype=int)
+    average_distances_zero = calculate_new_distances_for_cisterna(distances[0], sigma.length[0], sigma.scale[0])
     # average_distances_max = math_utils.calculate_average_cisterna(distances[len(distances) - 1])
-    average_distances_max = calculate_new_distances_for_cisterna(distances[len(distances) - 1], sigma.length)
+    average_distances_max = calculate_new_distances_for_cisterna(distances[len(distances) - 1], sigma.length[len(sigma.scale) - 1], sigma.scale[len(sigma.scale) - 1])
     # zdruzi posamezne meritve med sabo
     num_of_remaining = num_of_cisternas - 2
     num_per_stack = int(len(distances) / num_of_remaining)
@@ -156,7 +162,7 @@ def generate_instance(num_of_cisternas, distances, num_of_direction_vectors, sig
                 combined_data[k].extend(distances[j][k])
         combined_data = np.array(combined_data)
         # average_distances = math_utils.calculate_average_cisterna(combined_data)
-        average_distances = calculate_new_distances_for_cisterna(combined_data, sigma.length)
+        average_distances = calculate_new_distances_for_cisterna(combined_data, sigma.length[sequence_length[i]], sigma.scale[sequence_scale[i]])
         points = populate_instances(average_distances, [0, 0, i * multiplicator], num_of_direction_vectors)
         final_object_dict[i] = points
         final_object.extend(points)
@@ -169,8 +175,9 @@ def generate_instance(num_of_cisternas, distances, num_of_direction_vectors, sig
 def create_parser():
     parser = argparse.ArgumentParser(description='Generate new GA shape')
     parser.add_argument('-c', '--cisternas', help='number of cisternas in stack')
-    parser.add_argument('-l', '--length', help='value of sigma for length in each direction')
+    parser.add_argument('-l', '--length', help='value of sigma for length in each direction', nargs='*')
     parser.add_argument('-s', '--seed', help='value of seed for random number generator')
+    parser.add_argument('-sc', '--scale', help='value of sigmaa for scale in each direction', nargs='*')
     return parser
 
 
@@ -185,15 +192,34 @@ if __name__ == '__main__':
     args = parser.parse_args()
     sigma = SigmaParameters()
     seed = 123
+    num_of_direction_vectors = meta_data[1]
     if args.cisternas:
         value = int(args.cisternas)
         num_cisternas = value
     if args.length:
-        value = float(args.length)
-        sigma.length = value
+        values = list(args.length)
+        if len(values) == 1:
+            sigma.length = [float(values[0])] * num_of_direction_vectors
+        else:
+            if len(values) != num_of_direction_vectors:
+                raise ValueError('Length must be equal to number of cisternas and length')
+            li = []
+            for v in values:
+                li.append(float(v))
+            sigma.length = li
+    if args.scale:
+        values = list(args.scale)
+        if len(values) == 1:
+            sigma.scale = [float(values[0])] * num_of_direction_vectors
+        else:
+            if len(values) != num_of_direction_vectors:
+                raise ValueError('Length must be equal to number of cisternas and length')
+            li = []
+            for v in values:
+                li.append(float(v))
+            sigma.scale = li
     if args.seed:
         seed = int(args.seed)
-    num_of_direction_vectors = meta_data[1]
     if num_cisternas is None:
         min_size = min(meta_data[0])
         max_size = max(meta_data[0])
@@ -205,5 +231,5 @@ if __name__ == '__main__':
     vertices, faces = generate_mesh(points_dict)
     utils.generate_obj_file(vertices, faces, f'ga.obj')
     tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=0)
-    utils.generate_obj_file(smooth.vertices, smooth.faces, f'test.obj')
+    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=10)
+    utils.generate_obj_file(smooth.vertices, smooth.faces, f'testing_shape.obj')
