@@ -168,6 +168,12 @@ def plot_bezier_curve(curve):
         'o:',
         label='Bezier curve'
     )
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    plt.axis('off')
+    plt.grid(b=None)
     plt.show()
 
 

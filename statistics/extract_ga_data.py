@@ -37,20 +37,20 @@ def plot_dataset_and_pca(dataset, vectors):
 
 def plot_dataset_moved_and_pca(dataset, aligned_dataset, vectors, mean):
     matplotlib.use('TkAgg')
-    x = [p[0] for p in dataset]
-    y = [p[1] for p in dataset]
-    z = [p[2] for p in dataset]
+    # x = [p[0] for p in dataset]
+    # y = [p[1] for p in dataset]
+    # z = [p[2] for p in dataset]
     fig = plt.figure()
     # ax = Axes3D(fig)
-    ax = fig.add_subplot(121, projection='3d')
-    ax.scatter(x, y, z, c='orange')
+    ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(x, y, z, c='orange')
     x_a = [p[0] for p in aligned_dataset]
     y_a = [p[1] for p in aligned_dataset]
     z_a = [p[2] for p in aligned_dataset]
-    ax1 = fig.add_subplot(122, projection='3d')
-    ax1.scatter(x_a, y_a, z_a, c='blue')
+    # ax1 = fig.add_subplot(122, projection='3d')
+    ax.scatter(x_a, y_a, z_a, c='blue')
     ax.view_init(43, -140)
-    ax1.view_init(43, -140)
+    # ax1.view_init(43, -140)
     # x_m = [p[0] for p in mean]
     # y_m = [p[1] for p in mean]
     # z_m = [p[2] for p in mean]
@@ -64,10 +64,10 @@ def plot_dataset_moved_and_pca(dataset, aligned_dataset, vectors, mean):
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_zticks([])
-    ax1.grid(False)
-    ax1.set_xticks([])
-    ax1.set_yticks([])
-    ax1.set_zticks([])
+    # ax1.grid(False)
+    # ax1.set_xticks([])
+    # ax1.set_yticks([])
+    # ax1.set_zticks([])
     plt.axis('off')
     plt.grid(b=None)
     plt.show()

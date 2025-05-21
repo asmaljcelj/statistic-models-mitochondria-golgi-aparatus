@@ -141,7 +141,7 @@ def generate_instance(num_of_cisternas, distances, num_of_direction_vectors, sig
     sequence_scale = np.linspace(0, len(sigma.scale) - 1, num_of_cisternas, dtype=int)
     average_distances_zero = calculate_new_distances_for_cisterna(distances[0], sigma.length[0], sigma.scale[0])
     # average_distances_max = math_utils.calculate_average_cisterna(distances[len(distances) - 1])
-    average_distances_max = calculate_new_distances_for_cisterna(distances[len(distances) - 1], sigma.length[len(sigma.scale) - 1], sigma.scale[len(sigma.scale) - 1])
+    average_distances_max = calculate_new_distances_for_cisterna(distances[len(distances) - 1], sigma.length[len(sigma.length) - 1], sigma.scale[len(sigma.scale) - 1])
     # zdruzi posamezne meritve med sabo
     num_of_remaining = num_of_cisternas - 2
     num_per_stack = int(len(distances) / num_of_remaining)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
     sigma = SigmaParameters()
-    seed = 123
+
     num_of_direction_vectors = meta_data[1]
     if args.cisternas:
         value = int(args.cisternas)
@@ -199,31 +199,34 @@ if __name__ == '__main__':
     if args.length:
         values = list(args.length)
         if len(values) == 1:
-            sigma.length = [float(values[0])] * num_of_direction_vectors
-        else:
-            if len(values) != num_of_direction_vectors:
-                raise ValueError('Length must be equal to number of cisternas and length')
-            li = []
-            for v in values:
-                li.append(float(v))
-            sigma.length = li
+            sigma.length = [float(values[0])]
+        sigma.length = [float(s) for s in values]
+        # else:
+        #     if len(values) != num_cisternas:
+        #         raise ValueError('Length must be equal to number of cisternas and length')
+        #     li = []
+        #     for v in values:
+        #         li.append(float(v))
+        #     sigma.length = li
     if args.scale:
         values = list(args.scale)
         if len(values) == 1:
-            sigma.scale = [float(values[0])] * num_of_direction_vectors
-        else:
-            if len(values) != num_of_direction_vectors:
-                raise ValueError('Length must be equal to number of cisternas and length')
-            li = []
-            for v in values:
-                li.append(float(v))
-            sigma.scale = li
+            sigma.scale = [float(values[0])]
+        sigma.scale = [float(s) for s in values]
+        # else:
+        #     if len(values) != num_of_direction_vectors:
+        #         raise ValueError('Length must be equal to number of cisternas and length')
+        #     li = []
+        #     for v in values:
+        #         li.append(float(v))
+        #     sigma.scale = li
     if args.seed:
         seed = int(args.seed)
     if num_cisternas is None:
         min_size = min(meta_data[0])
         max_size = max(meta_data[0])
         num_cisternas = round(np.random.uniform(min_size, max_size))
+    seed = 1337
     print('generating object with', num_cisternas, 'cisternas')
     np.random.seed(seed)
     average_object_points, points_dict = generate_instance(num_cisternas, data, num_of_direction_vectors, sigma)
@@ -231,5 +234,5 @@ if __name__ == '__main__':
     vertices, faces = generate_mesh(points_dict)
     utils.generate_obj_file(vertices, faces, f'ga.obj')
     tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=10)
-    utils.generate_obj_file(smooth.vertices, smooth.faces, f'testing_shape.obj')
+    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=1)
+    utils.generate_obj_file(smooth.vertices, smooth.faces, f'priblizek.obj')

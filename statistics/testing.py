@@ -148,6 +148,6 @@ def rmse_calculate_skeleton(actual, testing):
 # rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
 # print('rmse for ...:', rmse)
 # GA
-rmse = calculate_rmse_for_golgi('../results/testing_shape.obj', '../measurements_ga/testing/')
+rmse = calculate_rmse_for_golgi('../results/priblizek.obj', '../measurements_ga/testing/')
 print('rmse for ...:', rmse)
 
