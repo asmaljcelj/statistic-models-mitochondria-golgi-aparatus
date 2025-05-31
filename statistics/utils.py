@@ -106,6 +106,7 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
     # PLOTTING
     fig = plt.figure()
     ax = fig.add_subplot(121, projection='3d')
+    # plt.axis('off')
     ax.plot(
         bezier_curve[:, 0],  # x-coordinates.
         bezier_curve[:, 1],  # y-coordinates.
@@ -113,6 +114,10 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
         'o:'
         # label='Bezier curve'
     )
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
     ax1 = fig.add_subplot(122, projection='3d')
     ax1.plot(
         arc_length_approx[:, 0],  # x-coordinates.
@@ -137,16 +142,13 @@ def plot_save_result(num_of_points, bezier_curve, original_points, arc_length_ap
     # ax.set_zlabel('z')
     # ax.legend()
     # ax.grid(False)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    ax.grid(False)
-    ax1.grid(False)
     ax1.set_xticks([])
     ax1.set_yticks([])
     ax1.set_zticks([])
-    plt.axis('off')
+    ax1.grid(False)
+    # plt.axis('off')
     plt.grid(b=None)
+    # plt.grid(a=None)
     ax.view_init(70, 150)
     ax1.view_init(70, 150)
     plt.rcParams['axes.grid'] = False
@@ -923,3 +925,13 @@ def create_points_array(voxels):
                     list.append(np.array([i, j, k]))
     return np.array(list)
 
+
+def read_nii_data(file_path):
+    # read .nii file at specified location and return its data including image's metainfo
+    nib_image = nib.load(file_path)
+    return nib_image.get_fdata(), nib_image
+
+
+def save_new_object(data, filename, directory_path, image):
+    new_image = nib.Nifti1Image(data, image.affine)
+    nib.save(new_image, directory_path + '/' + filename)

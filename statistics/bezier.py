@@ -6,7 +6,7 @@ import numpy as np
 import math_utils
 import utils
 
-skeletons_folder = '../skeletons/'
+skeletons_folder = '../skeletons/learn/'
 number_of_plots = 10
 current_plot_count = 0
 plotting_enabled = True
@@ -131,5 +131,6 @@ if __name__ == '__main__':
             #     whole_curve, approx = bezier_nth_order_and_parametrization(n, char_points, 10)
             #     if plotting_enabled:
             utils.plot_save_result(current_plot_count, whole_curve, np_points, approx, number_of_plots, filename)
+            print()
             # else:
             #     print('not enough points to construct Bezier curve')

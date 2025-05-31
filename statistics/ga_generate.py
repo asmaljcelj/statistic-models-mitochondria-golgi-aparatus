@@ -185,7 +185,7 @@ if __name__ == '__main__':
     data = utils.read_measurements_from_file_ga('../measurements_ga/learn/measurements_ga.pkl')
     meta_data = data[0]
     data.pop(0)
-    # utils.plot_histograms_for_ga_data(meta_data[0], data[0], data[len(data) - 1])
+    utils.plot_histograms_for_ga_data(meta_data[0], data[0], data[len(data) - 1])
     # num_cisternas = int(np.mean(meta_data[0]))
     num_cisternas = None
     parser = create_parser()

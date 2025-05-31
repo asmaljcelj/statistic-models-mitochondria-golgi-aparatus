@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import pandas as pd
+import pyvista as pv
 from mpl_toolkits.mplot3d import Axes3D
 from networkx.algorithms.bipartite.basic import color
+from scipy.ndimage import gaussian_filter
 from sklearn.decomposition import PCA
 import scipy.ndimage as ndi
 
@@ -44,11 +46,14 @@ def plot_dataset_moved_and_pca(dataset, aligned_dataset, vectors, mean):
     # ax = Axes3D(fig)
     ax = fig.add_subplot(111, projection='3d')
     # ax.scatter(x, y, z, c='orange')
-    x_a = [p[0] for p in aligned_dataset]
-    y_a = [p[1] for p in aligned_dataset]
-    z_a = [p[2] for p in aligned_dataset]
+    x_a = np.array([p[0] for p in aligned_dataset])
+    y_a = np.array([p[1] for p in aligned_dataset])
+    z_a = np.array([p[2] for p in aligned_dataset])
     # ax1 = fig.add_subplot(122, projection='3d')
-    ax.scatter(x_a, y_a, z_a, c='blue')
+    ax.scatter(x_a, y_a, z_a, c='blue', depthshade=True)
+    # surface = ax.plot_surface(x_a, y_a, z_a, cmap='viridis', edgecolor='none', shade=True)
+
+    # fig.colorbar(surface)
     ax.view_init(43, -140)
     # ax1.view_init(43, -140)
     # x_m = [p[0] for p in mean]
@@ -64,13 +69,46 @@ def plot_dataset_moved_and_pca(dataset, aligned_dataset, vectors, mean):
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_zticks([])
-    # ax1.grid(False)
-    # ax1.set_xticks([])
-    # ax1.set_yticks([])
-    # ax1.set_zticks([])
+    # # ax1.grid(False)
+    # # ax1.set_xticks([])
+    # # ax1.set_yticks([])
+    # # ax1.set_zticks([])
     plt.axis('off')
     plt.grid(b=None)
     plt.show()
+    # print()
+
+    # cubes = [pv.Cube(center=voxel, x_length=1, y_length=1, z_length=1) for voxel in aligned_dataset]
+
+    # === Step 3: Combine cubes into a single surface ===
+    # combined = pv.MultiBlock(cubes).combine()
+
+    # Optional: Smooth normals to improve shading
+    # combined.compute_normals(inplace=True, auto_orient_normals=True)
+
+    # === Step 4: Plot with shading and lighting ===
+    # plotter = pv.Plotter()
+    # plotter.add_mesh(combined, color="lightblue", smooth_shading=True, show_edges=False)
+    # plotter.add_axes()
+    # plotter.show()
+    print()
+
+
+def plot(voxels):
+    # === Step 2: Create PyVista point cloud ===
+    cloud = pv.PolyData(voxels)
+
+    # === Step 3: Surface reconstruction using Delaunay 3D ===
+    # This creates a volume from which we can extract an outer surface
+    volume = cloud.delaunay_3d(alpha=1.5)
+    surface = volume.extract_geometry()
+
+    # === Step 4: Plot with edge emphasis ===
+    plotter = pv.Plotter()
+    plotter.add_mesh(surface, color="lightgray", smooth_shading=False, show_edges=False)
+    plotter.add_axes()
+    plotter.set_background("white")
+    plotter.show()
     print()
 
 
@@ -321,6 +359,7 @@ def read_files(instance_volume, filename, dataset):
     dataset_aligned, eigenvectors, mean = align_cisterna(dataset)
     centered_dataset = dataset - mean
     # plot_dataset_moved_and_pca(dataset, dataset_aligned, eigenvectors, mean)
+    plot(dataset)
     min_z_index = np.argmin(dataset_aligned[:, 2])
     lowest_point = dataset_aligned[min_z_index]
     max_z_index = np.argmax(dataset_aligned[:, 2])

@@ -38,7 +38,7 @@ def calculate_rmse_for_object(new_object_path, testing_directory):
         normal = math_utils.normalize(normal)
         if math.isnan(normal[0]) or math.isnan(normal[1]) or math.isnan(normal[2]):
             normal = np.array([0, 1, 0])
-        skeleton_distances[i], _ = sampling.sample_rays(current_point, normal, image, vector_to_next_point, image, 3)
+        skeleton_distances[i], _ = sampling.sample_rays(current_point, normal, vector_to_next_point, image, 3)
     distances_start, _ = sampling.sample_at_ends(arc[0], arc[1], image, direction_vectors)
     distances_end, _ = sampling.sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], image, direction_vectors)
     total_rmse, num_of_testing_intances = 0, 0
@@ -58,11 +58,6 @@ def calculate_rmse_for_golgi(new_object_path, testing_directory):
     filled = voxelized.fill()
     # Get list of voxel coordinates (as numpy array)
     voxels = filled.points.astype(int)
-    # voxels = []
-    # for vertex in mesh.vertices:
-    #     voxels.append([round(vertex[0]), round(vertex[1]), round(vertex[2])])
-    # voxels = list(map(list, set(map(tuple, voxels))))
-    # image = utils.create_points_array(voxels)
     cisternae, eigenvectors = extract_ga_data.read_files(None, None, np.array(voxels))
     distances = {}
     for i, cis in enumerate(cisternae):
@@ -148,6 +143,6 @@ def rmse_calculate_skeleton(actual, testing):
 # rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
 # print('rmse for ...:', rmse)
 # GA
-rmse = calculate_rmse_for_golgi('../results/priblizek.obj', '../measurements_ga/testing/')
+rmse = calculate_rmse_for_golgi('../results/90_50_i_1_s_02_b_20.obj', '../measurements_ga/testing/')
 print('rmse for ...:', rmse)
 
