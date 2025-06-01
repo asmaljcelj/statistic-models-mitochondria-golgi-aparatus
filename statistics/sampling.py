@@ -5,7 +5,6 @@ import numpy as np
 
 import bezier
 import math_utils
-import outside_statistics
 import utils
 
 
@@ -60,7 +59,6 @@ def iterate_ray(origin, direction_vector, shape):
         previous_voxel = current_voxel
         current_voxel = [x_coord, y_coord, z_coord]
         in_boundary = x_coord >= 0 and y_coord >= 0 and z_coord >= 0 and x_coord < shape.scalle[0] and y_coord < shape.scalle[1] and z_coord < shape.scalle[2] and shape[x_coord][y_coord][z_coord] > 0
-        # todo: improved collision detection and distance measurement
         if not in_boundary:
             boundary_voxel = [previous_voxel[0], previous_voxel[1], previous_voxel[2]]
             distance = math_utils.distance_between_points(origin, boundary_voxel)
@@ -90,6 +88,7 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
 
 
 def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, object_points, angle_increment=1):
+    # perform measurment
     skleton_distances = {}
     bezier_curve, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
     if arc is not None:
@@ -110,14 +109,15 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
     return skleton_distances, distances_start, distances_end, skeleton_curvature, length, skeleton_torsion
 
 
-def measure(skeletons_folder, extracted_data_folder, testing_data, num_of_skeleton_points, n, direction_vectors, direction_with_angles):
+def sample(skeletons_folder, extracted_data_folder, testing_data, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment):
+    # samples each instance in extracted_data_folder with matching skeleton
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
     for filename in os.listdir(skeletons_folder):
         print('processing', filename)
         skeleton_points = utils.read_file_collect_points(filename, skeletons_folder)
         object_points = utils.read_nii_file(extracted_data_folder, filename.replace('.csv', '.nii'))
         if skeleton_points is None:
-            print('no points for file', filename)
+            print('no skeleton for file', filename)
             continue
         distances, distance_start, distance_end, skeleton_curvature, length, torsion = perform_measurements(n,
                                                                                                             skeleton_points,
@@ -157,15 +157,14 @@ def measure(skeletons_folder, extracted_data_folder, testing_data, num_of_skelet
                                             direction_with_angles, torsion)
 
 
-if __name__ == '__main__':
-    skeletons_folder = '../skeletons/learn'
-    num_of_skeleton_points, n, num_of_samples, num_files = 15, 5, 1000, 1
-    angle_increment = 3
-    if 360 % angle_increment != 0:
-        raise Exception('angle increment has to be a multiple of 360.')
-    distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
-    direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
-    print('starting sampling learning group')
-    measure('../skeletons/learn/', '../extracted_data/learning/', False, num_of_skeleton_points, n, direction_vectors, direction_with_angles)
-    print('starting sampling testing group')
-    measure('../skeletons/test/', '../extracted_data/test/', True, num_of_skeleton_points, n, direction_vectors, direction_with_angles)
+skeletons_folder = '../skeletons/learn'
+num_of_skeleton_points, n, num_of_samples, num_files = 15, 5, 1000, 1
+angle_increment = 3
+if 360 % angle_increment != 0:
+    raise Exception('angle increment has to be a multiple of 360.')
+distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
+direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
+print('starting sampling learning group')
+sample('../skeletons/learn/', '../extracted_data/learning/', False, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment)
+print('starting sampling testing group')
+sample('../skeletons/test/', '../extracted_data/test/', True, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment)
