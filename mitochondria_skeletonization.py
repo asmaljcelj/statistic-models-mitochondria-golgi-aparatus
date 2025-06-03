@@ -29,8 +29,8 @@ def perform_skeletonization(folder, results_folder):
         image = nib.load(filepath)
         array = np.array(image.get_fdata())
         final_points = skeletonize_voxels(array)
-        np.savetxt('../skeletons/' + results_folder + '/' + os.path.splitext(filename)[0] + '.csv', final_points, delimiter=',', fmt='%-0d')
+        np.savetxt('skeletons/' + results_folder + '/' + os.path.splitext(filename)[0] + '.csv', final_points, delimiter=',', fmt='%-0d')
 
 
-perform_skeletonization('../extracted_data' + '/learning', 'learn')
-perform_skeletonization('../extracted_data' + '/test', 'test')
+perform_skeletonization('extracted_data' + '/learning', 'learn')
+perform_skeletonization('extracted_data' + '/test', 'test')

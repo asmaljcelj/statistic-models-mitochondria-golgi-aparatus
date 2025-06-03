@@ -141,7 +141,7 @@ def sample(skeletons_folder, extracted_data_folder, testing_data, num_of_skeleto
     if not testing_data:
         skeleton, start, end, curvature, torsion = utils.group_distances(distances_skeleton_all, distances_start_all,
                                                                      distances_end_all, curvatures_all, torsions)
-        utils.save_measurements_to_file('../measurements/learn/measurements.pkl', skeleton, start, end, curvature, lengths,
+        utils.save_measurements_to_file('measurements/learn/measurements.pkl', skeleton, start, end, curvature, lengths,
                                     direction_with_angles, torsion)
     else:
         for filename in distances_skeleton_all:
@@ -152,19 +152,19 @@ def sample(skeletons_folder, extracted_data_folder, testing_data, num_of_skeleto
             torsion = torsions[filename]
             name = 'measurements_' + filename
             name = name.replace('.csv', '.nii')
-            utils.save_measurements_to_file('../measurements/testing/' + name, distances_skeleton, distances_start, distances_end, curvatures,
+            utils.save_measurements_to_file('measurements/testing/' + name, distances_skeleton, distances_start, distances_end, curvatures,
                                             None,
                                             direction_with_angles, torsion)
 
 
-skeletons_folder = '../skeletons/learn'
-num_of_skeleton_points, n, num_of_samples, num_files = 15, 5, 1000, 1
+skeletons_folder = 'skeletons/learn'
+num_of_skeleton_points, n, num_of_samples = 15, 5, 1000
 angle_increment = 3
 if 360 % angle_increment != 0:
     raise Exception('angle increment has to be a multiple of 360.')
 distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
 direction_vectors, direction_with_angles = sample_direction_vectors(num_of_samples, angle_increment)
 print('starting sampling learning group')
-sample('../skeletons/learn/', '../extracted_data/learning/', False, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment)
+sample('skeletons/learn/', 'extracted_data/learning/', False, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment)
 print('starting sampling testing group')
-sample('../skeletons/test/', '../extracted_data/test/', True, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment)
+sample('skeletons/test/', 'extracted_data/test/', True, num_of_skeleton_points, n, direction_vectors, direction_with_angles, angle_increment)

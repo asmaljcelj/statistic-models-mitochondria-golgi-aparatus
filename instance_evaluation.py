@@ -5,25 +5,24 @@ import numpy as np
 import trimesh
 
 import bezier
-import extract_ga_data
+import ga_extract
 import ga_statistics
 import math_utils
-import sampling
-import skeletonization
+import mitochondria_sampling
+import mitochondria_skeletonization
 import utils
 
 
-def calculate_rmse_for_object(new_object_path, testing_directory):
-    direction_vectors, direction_with_angles = sampling.sample_direction_vectors(1000, 3)
+def calculate_rmse_for_mito(new_object_path, testing_directory):
+    direction_vectors, direction_with_angles = mitochondria_sampling.sample_direction_vectors(1000, 3)
     mesh = trimesh.load(new_object_path)
     voxelized = mesh.voxelized(pitch=1.0)
     filled = voxelized.fill()
 
     # Get list of voxel coordinates (as numpy array)
     voxels = filled.points.astype(int)
-    # utils.plot_3d(voxels)
     image = utils.create_3d_image(voxels)
-    result = skeletonization.skeletonize_voxels(np.array(image))
+    result = mitochondria_skeletonization.skeletonize_voxels(np.array(image))
     bezier_curve, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(5, result, 15)
     skeleton_distances = {}
     for i in range(1, len(arc) - 2):
@@ -38,9 +37,9 @@ def calculate_rmse_for_object(new_object_path, testing_directory):
         normal = math_utils.normalize(normal)
         if math.isnan(normal[0]) or math.isnan(normal[1]) or math.isnan(normal[2]):
             normal = np.array([0, 1, 0])
-        skeleton_distances[i], _ = sampling.sample_rays(current_point, normal, vector_to_next_point, image, 3)
-    distances_start, _ = sampling.sample_at_ends(arc[0], arc[1], image, direction_vectors)
-    distances_end, _ = sampling.sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], image, direction_vectors)
+        skeleton_distances[i], _ = mitochondria_sampling.sample_rays(current_point, normal, vector_to_next_point, image, 3)
+    distances_start, _ = mitochondria_sampling.sample_at_ends(arc[0], arc[1], image, direction_vectors)
+    distances_end, _ = mitochondria_sampling.sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], image, direction_vectors)
     total_rmse, num_of_testing_intances = 0, 0
     for filename in os.listdir(testing_directory):
         print('processing', filename)
@@ -58,11 +57,11 @@ def calculate_rmse_for_golgi(new_object_path, testing_directory):
     filled = voxelized.fill()
     # Get list of voxel coordinates (as numpy array)
     voxels = filled.points.astype(int)
-    cisternae, eigenvectors = extract_ga_data.read_files(None, None, np.array(voxels))
+    cisternae, eigenvectors = ga_extract.read_files(np.array(voxels))
     distances = {}
     for i, cis in enumerate(cisternae):
         centers = utils.cisterna_volume_extraction(cis)
-        measurements = ga_statistics.calculate_distances_to_landmark_points(centers, direction_vectors, True)
+        measurements = ga_statistics.calculate_distances_to_landmark_points(centers, direction_vectors)
         distances[i] = measurements
     total_rmse, num_of_testing_instances = 0, 0
     for filename in os.listdir(testing_directory):
@@ -75,7 +74,7 @@ def calculate_rmse_for_golgi(new_object_path, testing_directory):
 
 
 def calculate_rmse_between_objects(new_start, new_end, new_skeleton, test_object):
-    _, start, end, skeleton, _, _, _ = utils.read_measurements_from_file('../measurements/testing/' + test_object)
+    _, start, end, skeleton, _, _, _ = utils.read_measurements_from_file('measurements/testing/' + test_object)
     rmse, num_instances = 0, 0
     rmse_value, n = rmse_calculate_edges(new_start, start)
     num_instances += n
@@ -90,7 +89,7 @@ def calculate_rmse_between_objects(new_start, new_end, new_skeleton, test_object
 
 
 def calculate_rmse_between_ga_objects(distances, test_object, direction_vectors):
-    data = utils.read_measurements_from_file_ga('../measurements_ga/testing/' + test_object)
+    data = utils.read_measurements_from_file_ga('measurements_ga/testing/' + test_object)
     return rmse_calculate_ga(distances, data, direction_vectors)
 
 
@@ -140,9 +139,10 @@ def rmse_calculate_skeleton(actual, testing):
 
 
 # mito
-# rmse = calculate_rmse_for_object('../results/smooth_025_10_123.obj', '../measurements/testing/')
-# print('rmse for ...:', rmse)
+mito_filename = 'results/smooth_025_10_123.obj'
+rmse_mito = calculate_rmse_for_mito(mito_filename, 'measurements/testing/')
+print('rmse for mitochondria instance', mito_filename, ':', rmse_mito)
 # GA
-rmse = calculate_rmse_for_golgi('../results/90_50_i_1_s_02_b_20.obj', '../measurements_ga/testing/')
-print('rmse for ...:', rmse)
-
+ga_filename = 'results/90_50_i_1_s_02_b_20.obj'
+rmse_ga = calculate_rmse_for_golgi(ga_filename, 'measurements_ga/testing/')
+print('rmse for Golgi apparatus instance', ga_filename, ':', rmse_ga)

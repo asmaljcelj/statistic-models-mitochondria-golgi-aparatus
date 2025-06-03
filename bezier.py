@@ -1,15 +1,8 @@
 import math
-import os
 
 import numpy as np
 
 import math_utils
-import utils
-
-skeletons_folder = '../skeletons/learn/'
-number_of_plots = 10
-current_plot_count = 0
-plotting_enabled = True
 
 
 def calculate_bezier_derivative(n, points, t):
@@ -99,38 +92,3 @@ def perform_arc_length_parametrization_bezier_curve(n, points, num_points_on_the
     else:
         print('not enough points to construct Bezier curve')
         return None, None, None
-
-
-if __name__ == '__main__':
-    for filename in os.listdir(skeletons_folder):
-        if filename.endswith('.nii'):
-            continue
-        print('processing', filename)
-        file_path = skeletons_folder + filename
-
-        n = 5
-        with open(file_path) as csv_file:
-            points = math_utils.extract_points(csv_file)
-
-            np_points = np.array(points)
-
-            whole_curve, approx, length = perform_arc_length_parametrization_bezier_curve(n, np_points, 15)
-            # char_points = [np_points[0]]
-            # # če je v skeletonu premalo točk (manj kot n) -> zmanjšaj stopnjo Bezierjeve krivulje
-            # if len(points) < n + 1:
-            #     n = len(points) - 1
-            # else:
-            #     n = 5
-            # if n > 0:
-            #     ratio = 1 / n
-            #     for i in range(1, n):
-            #         # from 1 to n
-            #         control_point_index = int(i * ratio * len(points))
-            #         char_points.append(np_points[control_point_index])
-            #     char_points.append(np_points[len(points) - 1])
-            #     whole_curve, approx = bezier_nth_order_and_parametrization(n, char_points, 10)
-            #     if plotting_enabled:
-            utils.plot_save_result(current_plot_count, whole_curve, np_points, approx, number_of_plots, filename)
-            print()
-            # else:
-            #     print('not enough points to construct Bezier curve')
