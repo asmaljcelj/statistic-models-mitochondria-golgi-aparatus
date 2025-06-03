@@ -59,6 +59,8 @@ def remove_empty_space_from_object(instance):
 def extract_mitochondria(data_directory, extracted_data_directory):
     # read every file from specified directory
     for filename in os.listdir(data_directory):
+        if not filename.endswith('.nii.gz'):
+            continue
         start_time = time.time()
         relative_file_path = data_directory + '/' + filename
         print('processing file:', filename)

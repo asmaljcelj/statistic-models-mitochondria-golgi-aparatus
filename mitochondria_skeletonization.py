@@ -24,6 +24,8 @@ def skeletonize_voxels(voxels):
 def perform_skeletonization(folder, results_folder):
     # extract skeleton from each mitochondria object
     for filename in os.listdir(folder):
+        if not filename.endswith('.nii.gz'):
+            continue
         filepath = folder + '/' + filename
         print('processing file', filename)
         image = nib.load(filepath)

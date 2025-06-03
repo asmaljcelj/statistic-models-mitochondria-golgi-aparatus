@@ -65,6 +65,8 @@ def align_cisterna(ga_object):
 data_directory = 'data_ga/approximate'
 
 for filename in os.listdir(data_directory):
+    if not filename.endswith('.nii.gz'):
+        continue
     relative_file_path = data_directory + '/' + filename
     print('processing file:', filename)
     nib_image = nib.load(relative_file_path)

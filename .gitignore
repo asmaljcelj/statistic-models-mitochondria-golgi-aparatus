@@ -1,19 +1,32 @@
-data/fib1-0-0-0.nii.gz
-data/fib1-1-0-3.nii.gz
-data/fib1-3-2-1.nii.gz
-data/fib1-3-3-0.nii.gz
-data/fib1-4-3-0.nii.gz
-data_ga/approximate/fib1-4-3-0.nii.gz
-data_ga/approximate/fib1-1-0-3.nii.gz
-data_ga/approximate/fib1-3-3-0.nii.gz
-data_ga/approximate/fib1-3-2-1.nii.gz
-data_ga/approximate/fib1-2-2-3.nii.gz
-data_ga/approximate/fib1-2-3-0.nii.gz
-data_ga/approximate/fib1-2-3-2.nii.gz
+data/*
+!data/.gitkeep
+data_ga/*
+!data_ga/approximate/.gitkeep
 
-extracted_data
-extracted_ga_data
-skeletons
+extracted_data/*
+!extracted_data/.gitkeep
+extracted_data/learning
+!extracted_data/learning/.gitkeep
+!extracted_data/test/.gitkeep
+
+extracted_ga_data/*
+!extracted_ga_data/.gitkeep
+
+ga_instances/*
+!ga_instances/.gitkeep
+
+measurements/*
+!measurements/learn/.gitkeep
+!measurements/testing/.gitkeep
+
+measurements_ga/*
+!measurements_ga/learn/.gitkeep
+!measurements_ga/testing/.gitkeep
+
+skeletons/*
+!skeletons/learn/.gitkeep
+!skeletons/test/.gitkeep
+
 .idea
 
 # Default ignored files
