@@ -9,9 +9,6 @@ extracted_data/learning
 !extracted_data/learning/.gitkeep
 !extracted_data/test/.gitkeep
 
-extracted_ga_data/*
-!extracted_ga_data/.gitkeep
-
 ga_instances/*
 !ga_instances/.gitkeep
 
@@ -26,6 +23,9 @@ measurements_ga/*
 skeletons/*
 !skeletons/learn/.gitkeep
 !skeletons/test/.gitkeep
+
+results/*
+!results/.gitkeep
 
 .idea
 

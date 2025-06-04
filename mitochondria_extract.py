@@ -56,7 +56,7 @@ def remove_empty_space_from_object(instance):
 
 
 # learning_testing_split: ratio, how to split instances into learning and testing set
-def extract_mitochondria(data_directory, extracted_data_directory):
+def extract_mitochondria(data_directory, extracted_data_directory, invalid_instances):
     # read every file from specified directory
     for filename in os.listdir(data_directory):
         if not filename.endswith('.nii.gz'):
@@ -75,6 +75,8 @@ def extract_mitochondria(data_directory, extracted_data_directory):
             new_filename = filename[:filename.find('.')] + '_' + str(int(instance))
             # if object is on the edge, ignore it as it doesn't reflect full, realistic shape
             if instance in instances_on_edge:
+                continue
+            if new_filename + '.nii' in invalid_instances:
                 continue
             # initialize grid the size of original where we populate the object
             isolated_instance_object = np.zeros((image_shape[0], image_shape[1], image_shape[2]))
@@ -102,8 +104,26 @@ def split_learn_test(data_directory, split_ratio=80):
             shutil.copy(os.path.join(data_directory, filename), os.path.join(data_directory + '/test', filename))
         index += 1
 
-
+invalid_instances = [
+    'fib1-0-0-0_10.nii',
+    # non-normal shape
+    'fib1-0-0-0_33.nii',
+    'fib1-1-0-3_2.nii',
+    'fib1-1-0-3_3.nii',
+    'fib1-3-2-1_1.nii',
+    'fib1-3-2-1_2.nii',
+    'fib1-3-2-1_8.nii',
+    'fib1-3-3-0_4.nii',
+    'fib1-3-3-0_14.nii',
+    'fib1-3-3-0_28.nii',
+    'fib1-3-3-0_56.nii',
+    'fib1-3-3-0_59.nii',
+    'fib1-4-3-0_3.nii',
+    'fib1-4-3-0_7.nii',
+    'fib1-4-3-0_14.nii',
+    'fib1-4-3-0_38.nii'
+]
 data_directory = 'data'
 extracted_data_directory = 'extracted_data'
-extract_mitochondria(data_directory, extracted_data_directory)
+extract_mitochondria(data_directory, extracted_data_directory, invalid_instances)
 split_learn_test(extracted_data_directory)

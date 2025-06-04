@@ -54,11 +54,11 @@ def iterate_ray(origin, direction_vector, shape):
     while True:
         new_point = current_point + direction_vector
         if math.isnan(new_point[0]) or math.isnan(new_point[1]) or math.isnan(new_point[2]):
-            print()
+            continue
         x_coord, y_coord, z_coord = int(new_point[0]), int(new_point[1]), int(new_point[2])
         previous_voxel = current_voxel
         current_voxel = [x_coord, y_coord, z_coord]
-        in_boundary = x_coord >= 0 and y_coord >= 0 and z_coord >= 0 and x_coord < shape.scalle[0] and y_coord < shape.scalle[1] and z_coord < shape.scalle[2] and shape[x_coord][y_coord][z_coord] > 0
+        in_boundary = x_coord >= 0 and y_coord >= 0 and z_coord >= 0 and x_coord < shape.shape[0] and y_coord < shape.shape[1] and z_coord < shape.shape[2] and shape[x_coord][y_coord][z_coord] > 0
         if not in_boundary:
             boundary_voxel = [previous_voxel[0], previous_voxel[1], previous_voxel[2]]
             distance = math_utils.distance_between_points(origin, boundary_voxel)
@@ -89,7 +89,7 @@ def calculate_skeleton_curvature_and_torsion(n, arc, number_of_points):
 
 def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, object_points, angle_increment=1):
     # perform measurment
-    skleton_distances = {}
+    skleton_distances, distances_start, distances_end, skeleton_curvature, skeleton_torsion = {}, {}, {}, {}, {}
     bezier_curve, arc, length = bezier.perform_arc_length_parametrization_bezier_curve(n, skeleton_points, num_of_points)
     if arc is not None:
         for i in range(1, len(arc) - 2):
@@ -102,7 +102,7 @@ def perform_measurements(n, skeleton_points, num_of_points, direction_vectors, o
             if np.any(np.isnan(normal)):
                 return None, None, None
             normal = math_utils.normalize(normal)
-            skleton_distances[i], sampled_points = sample_rays(current_point, normal, vector_to_next_point, object_points, angle_increment)
+            skleton_distances[i], sampled_points = sample_rays(current_point, normal, object_points, vector_to_next_point, angle_increment)
         distances_start, sampled_start = sample_at_ends(arc[0], arc[1], object_points, direction_vectors)
         distances_end, sampled_end = sample_at_ends(arc[len(arc) - 1], arc[len(arc) - 2], object_points, direction_vectors)
         skeleton_curvature, skeleton_torsion = calculate_skeleton_curvature_and_torsion(n, bezier_curve, num_of_points)
@@ -113,6 +113,8 @@ def sample(skeletons_folder, extracted_data_folder, testing_data, num_of_skeleto
     # samples each instance in extracted_data_folder with matching skeleton
     distances_skeleton_all, distances_start_all, distances_end_all, curvatures_all, lengths, torsions = {}, {}, {}, {}, [], {}
     for filename in os.listdir(skeletons_folder):
+        if not filename.endswith('.csv'):
+            continue
         print('processing', filename)
         skeleton_points = utils.read_file_collect_points(filename, skeletons_folder)
         object_points = utils.read_nii_file(extracted_data_folder, filename.replace('.csv', '.nii'))

@@ -8,11 +8,11 @@ import utils
 
 
 class SigmaParameters:
-    length = 0.2
-    size = 0.2
+    length = [0.2]
+    size = [0.2]
     smoothing_iterations = 0
 
-    def __init__(self, length=0.2, size=0.2, shape=1, smoothing_iterations=0):
+    def __init__(self, length=[0.2], size=[0.2], shape=[1], smoothing_iterations=0):
         self.length = length
         self.size = size
         self.scale = shape
@@ -133,7 +133,7 @@ def create_parser():
     parser.add_argument('-l', '--length', help='value of sigma for length in each direction', nargs='*')
     parser.add_argument('-s', '--seed', help='value of seed for random number generator')
     parser.add_argument('-sc', '--scale', help='value of sigma for scale in each direction', nargs='*')
-    parser.add_argument('-it', '--iteration', help='number of smoothing iterations')
+    parser.add_argument('-it', '--smoothing-iterations', help='number of smoothing iterations')
     return parser
 
 
@@ -169,7 +169,7 @@ if num_cisternae is None:
     num_cisternae = round(np.random.uniform(min_size, max_size))
 print('generating object with', num_cisternae, 'cisternae')
 np.random.seed(seed)
-average_object_points, points_dict = generate_instance(num_cisternae, data, num_of_direction_vectors, sigma)
+object_points, points_dict = generate_instance(num_cisternae, data, num_of_direction_vectors, sigma)
 vertices, faces = generate_mesh(points_dict)
 tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
 smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=sigma.smoothing_iterations)

@@ -15,7 +15,7 @@ def get_all_stack_size_of_learning_dataset(data_directory, num_split):
     length = []
     added = 0
     for filename in os.listdir(data_directory):
-        if '_ev' in filename:
+        if '_ev' in filename or not filename.endswith('.npz'):
             continue
         if added >= num_split:
             continue
@@ -56,7 +56,7 @@ length, max_stack_size = get_all_stack_size_of_learning_dataset(data_directory, 
 distances = utils.initialize_list_of_lists(max_stack_size)
 for filename in os.listdir(data_directory):
     # _ev v imenu datoteke vsebuje lastne vrednosti za ta primerek, tako da ga ne obdeluj posebej
-    if '_ev' in filename:
+    if '_ev' in filename or not filename.endswith('.npz'):
         continue
     # nalozi obe datoteki
     data = np.load(data_directory + '/' + filename, allow_pickle=True)
