@@ -7,7 +7,7 @@ import math_utils
 import utils
 
 
-class SigmaParameters:
+class Parameters:
     length = 0.2
     skeleton_points = 0.2
     start_points = 0.2
@@ -77,7 +77,7 @@ def extract_edge_points(edge_distances, normal, skeleton_point, edge_direction_w
     for direction, distances in edge_distances.items():
         distances = np.array(distances)
         theta, phi = edge_direction_with_angles[direction]
-        new_distance = utils.retrieve_new_value_from_standard_derivation(sigma.end_points, distances)
+        new_distance = utils.retrieve_new_value_from_standard_derivation(parameters.end_points, distances)
         new_direction = np.dot(R, direction)
         if start_points:
             new_direction[2] *= -1
@@ -87,25 +87,25 @@ def extract_edge_points(edge_distances, normal, skeleton_point, edge_direction_w
     return points_dict
 
 
-def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, direction_with_angles, lengths, torsions, random_seed=2000, sigma=SigmaParameters()):
+def sample_new_points(skeleton_distances, start_distances, end_distances, curvature, direction_with_angles, lengths, torsions, random_seed=2000, parameters=Parameters()):
     np.random.seed(random_seed)
     # calculate skeleton points based on curvature
     print('finding new skeleton points')
     if len(lengths) == 1:
         total_skeleton_length = lengths[0]
     else:
-        total_skeleton_length = utils.retrieve_new_value_from_standard_derivation(sigma.length, lengths)[0]
+        total_skeleton_length = utils.retrieve_new_value_from_standard_derivation(parameters.length, lengths)[0]
     print('using skeleton length of', total_skeleton_length)
     print('generating skeleton points')
     # calculate new skeleton points of mitochondria using Frenet-Serret equations
-    skeleton_outside_points, skeleton_points = extract_skeleton_points(skeleton_distances, total_skeleton_length, sigma, curvature, torsions)
+    skeleton_outside_points, skeleton_points = extract_skeleton_points(skeleton_distances, total_skeleton_length, parameters, curvature, torsions)
     print('generating end points')
     end_points_dict = extract_edge_points(end_distances, math_utils.normalize(skeleton_points[-1] - skeleton_points[-2]), skeleton_points[-1], direction_with_angles, False)
     print('generating starts points')
     start_points_dict = extract_edge_points(start_distances, math_utils.normalize(skeleton_points[0] - skeleton_points[1]) * -1, np.array([0, 0, 0]), direction_with_angles, True)
     vertices, faces = generate_mesh(skeleton_outside_points, start_points_dict, end_points_dict)
     tri_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=sigma.smoothing_iterations)
+    smooth = trimesh.smoothing.filter_humphrey(tri_mesh, iterations=parameters.smoothing_iterations)
     utils.generate_obj_file(smooth.vertices, smooth.faces, f'mesh.obj')
 
 
@@ -275,12 +275,12 @@ def create_parser():
     parser.add_argument('-l', '--length', help='length of the generated shapes')
     parser.add_argument('-t', '--torsion', help='torsion of the generated shapes', nargs='*')
     parser.add_argument('-s', '--seed', help='seed of the random number generator')
-    parser.add_argument('-sl', '--sigma-length', help='value of sigma for length')
-    parser.add_argument('-ss', '--sigma-skeleton', help='value of sigma for skeleton points')
-    parser.add_argument('-sst', '--sigma-start', help='value of sigma for start points')
-    parser.add_argument('-se', '--sigma-end', help='value of sigma for end points')
-    parser.add_argument('-sc', '--sigma-curvature', help='value of sigma for curvature')
-    parser.add_argument('-st', '--sigma-torsion', help='value of sigma for torsion')
+    parser.add_argument('-sl', '--sigma-length', help='value of interval_width for length')
+    parser.add_argument('-ss', '--sigma-skeleton', help='value of interval_width for skeleton points')
+    parser.add_argument('-sst', '--sigma-start', help='value of interval_width for start points')
+    parser.add_argument('-se', '--sigma-end', help='value of interval_width for end points')
+    parser.add_argument('-sc', '--sigma-curvature', help='value of interval_width for curvature')
+    parser.add_argument('-st', '--sigma-torsion', help='value of interval_width for torsion')
     parser.add_argument('-it', '--smoothing-iterations', help='number of smoothing iterations')
     return parser
 
@@ -301,7 +301,7 @@ if args.curvature:
         curvature[i] = [float(args.curvature[i])]
 if args.seed:
     seed = args.seed
-sigma = SigmaParameters()
+parameters = Parameters()
 if args.torsion:
     if len(torsions.keys()) != len(args.torsion):
         raise Exception('number of torsion values must match the number of characteristic points')
@@ -310,31 +310,31 @@ if args.torsion:
 if args.sigma_length:
     value = float(args.sigma_length)
     validate_sigma_parameter(value)
-    sigma.length = value
+    parameters.length = value
 if args.sigma_skeleton:
     value = float(args.sigma_skeleton)
     validate_sigma_parameter(value)
-    sigma.skeleton_points = value
+    parameters.skeleton_points = value
 if args.sigma_start:
     value = float(args.sigma_start)
     validate_sigma_parameter(value)
-    sigma.start_points = value
+    parameters.start_points = value
 if args.sigma_end:
     value = float(args.sigma_end)
     validate_sigma_parameter(value)
-    sigma.end_points = value
+    parameters.end_points = value
 if args.sigma_curvature:
     value = float(args.sigma_curvature)
     validate_sigma_parameter(value)
-    sigma.curvature = value
+    parameters.curvature = value
 if args.sigma_torsion:
     value = float(args.sigma_torsion)
     validate_sigma_parameter(value)
-    sigma.torsion = value
+    parameters.torsion = value
 if args.length:
     lengths = [float(args.length)]
 if args.smoothing_iterations:
     value = int(args.smoothing_iterations)
-    sigma.smoothing_iterations = value
-print('using sigma values:', sigma)
-sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, random_seed=seed, sigma=sigma)
+    parameters.smoothing_iterations = value
+print('using sigma values:', parameters)
+sample_new_points(skeleton, start, end, curvature, direction_with_angles, lengths, torsions, random_seed=seed, parameters=parameters)
